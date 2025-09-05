@@ -3,4 +3,5 @@
   date: 2025-09-19
   Link: "[{{< fa link >}}](/ps403-d_01.qmd)"
   Code: "[{{< fa file-code >}}](scripts/ps403-d_01.qmd){target='_blank'}"
+  Data: "[{{< fa database >}}](data/...){target='_blank'}"
   type: "schedule"
