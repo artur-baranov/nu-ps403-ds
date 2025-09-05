@@ -32,6 +32,6 @@
     "href": "ps403-d_01.html",
     "title": "Introduction to R",
     "section": "",
-    "text": "Before we start\n\nartur-baranov.github.io/nu-ps403-ds\n\n\nlibrary(qrcode)\nqr_code('https://artur-baranov.github.io/nu-ps403-ds') |&gt;\n  plot()"
+    "text": "Before we start\n\nartur-baranov.github.io/nu-ps403-ds\n\n\nlibrary(qrcode)\nqr_code('https://artur-baranov.github.io/nu-ps403-ds') |&gt;\n  plot()\n\n\n\n\n\n\n\n\n\nDownload script"
   }
 ]

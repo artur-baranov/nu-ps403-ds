@@ -20,3 +20,6 @@ qr_code('https://artur-baranov.github.io/nu-ps403-ds') |>
   plot()
 ```
 
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_01.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
