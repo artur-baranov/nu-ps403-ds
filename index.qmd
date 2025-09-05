@@ -1,0 +1,73 @@
+---
+title: ""
+format: 
+  html:
+    toc: false
+listing:
+  - id: schedule
+    include: 
+      type: "schedule"
+    contents: classes.yaml
+    type: table
+    fields: [Week, title, Link, Code, Data]
+    filter-ui: false
+    sort: "week"
+    sort-ui: false
+---
+
+## Description
+<center>PS 403 • Fall 2025 <br> Department of Political Science<p style="color:#4E2A84;">Northwestern University</p></center>
+
+This site is designed to support students enrolled in the PS403 Statistics and Probability course. Here, you will find lab materials. In the section, we will focus on coding and practicing the concepts covered in the lectures.
+
+:::: {.columns}
+
+::: {.column}
+### Section Details
+
+- {{< fa calendar >}} &nbsp; Friday
+- {{< fa clock >}} &nbsp; 11:00 AM -- 11:50 AM
+- {{< fa location-dot >}} &nbsp; Scott Hall 212
+
+:::
+
+::: {.column}
+### Office Hours Details
+
+- {{< fa calendar >}} &nbsp; Friday
+- {{< fa clock >}} &nbsp; 9:00 AM -- 11:00 AM
+- {{< fa location-dot >}} &nbsp; Scott Hall 110
+:::
+
+::::
+
+## Schedule
+
+:::{#schedule}
+:::
+
+## Additional Resources
+
+### Helpful Regression Resources
+
+-   [Step-by-step regression guide](https://evalsp24.classes.andrewheiss.com/example/regression.html)
+
+### Data Wrangling
+
+-   [Joins Tutorial](https://rpubs.com/williamsurles/293454)
+
+### Data Sources
+
+-   [Political Science datasets](https://github.com/erikgahner/PolData)
+
+### Visualization
+
+-   [Introduction to ggplot2](https://jrnold.github.io/r4ds-exercise-solutions/data-visualisation.html)
+
+-   [Maps/Networks/Advanced visualization with ggplot2](https://ggplot2-book.org)
+
+-   [Making interactive plots with ggplot2](https://plotly.com/ggplot2/box-plots/)
+
+### Cheatsheets
+
+-   [Tidyverse cheatsheets](https://rstudio.github.io/cheatsheets/)

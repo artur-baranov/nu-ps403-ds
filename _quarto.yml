@@ -1,0 +1,27 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - "*.qmd"
+    - "!/docs/scripts/*.qmd"
+    - "!drafts.qmd"
+    
+website:
+  title: "PS403 Statistics and Probability"
+  favicon: fav.png
+  navbar:
+    left:
+      - text: " "
+        href: index.qmd
+        
+
+format:
+  html:
+    theme:
+      light: [flatly, custom.scss]
+    mainfont: roboto
+    css: styles.css
+    toc: true
+
+
+
