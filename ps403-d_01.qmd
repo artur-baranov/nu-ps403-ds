@@ -23,3 +23,20 @@ qr_code('https://artur-baranov.github.io/nu-ps403-ds') |>
 <center>
 <a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_01.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
+
+# Data Exploration
+
+# Quick Refresher on Tidyverse
+
+## Choosing variables
+select
+
+## Creating a new variable 
+
+E.g. Chances of an event
+
+## Conditional Subset
+
+## Sample_n
+
+# Loops
