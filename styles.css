@@ -8,8 +8,15 @@ body:not(.floating) .nav-footer {
 
 .btn-primary {
   background-color: #4E2A84;
-  border: none;
+  border: transparent;
   color: $white;
+
+}
+
+.btn-primary:hover {
+  background-color: transparent;
+  border: 2px solid #4E2A84;
+  color: #4E2A84;
 
 }
 

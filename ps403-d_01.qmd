@@ -292,6 +292,56 @@ Did we address the question posed at the beginning? Did we approach it descripti
 
 :::
 
-# Sample_n
+# Extra: Sampling and Loops
 
-# Loops
+We have covered sampling from the data during the [mathcamp](https://gustavodiaz.org/NUmathcamp) - but this would be useful to go through it again.
+
+Let's briefly reproduce logic of sampling. Say, we know the distribution of Gini, and we know its average.
+
+```{r}
+gini_distribution = ggplot(cpds_subset) +
+  geom_histogram(aes(x = gini)) +
+  geom_vline(xintercept = mean(cpds_subset$gini, na.rm = TRUE),
+             color = "blue")
+
+gini_distribution
+```
+
+Get through the code step-by-step. We are creating an empty dataframe `sample_averages`, which records averages of the sampled data.
+
+```{r}
+set.seed(123)
+sample_averages = data.frame()
+
+for(i in 1:100){
+  temporary_sample <- sample_n(cpds_subset, size = 80)                   # sample 80 observations
+  temporary_sample_average <- mean(temporary_sample$gini, na.rm = TRUE)  # calculate the sample average 
+  sample_averages <- rbind(sample_averages, temporary_sample_average) # add the sample average to the df
+}
+
+colnames(sample_averages) = "average"
+head(sample_averages)
+```
+
+Let's plot the average on the same graph. Repeat the process by increasing the number of iterations in the loop to 1000.
+
+```{r}
+gini_distribution +
+  geom_vline(xintercept = mean(sample_averages$average, na.rm = TRUE),
+             color = "red") 
+  
+```
+
+# Check list
+
+- [ ] I understand how I can load .csv and .xlsx in R, and if I see some other unsual file extension, it will not scare me
+
+- [ ] I know what dataframes are, and I know how to create them
+
+- [ ] I know what variables and observations are
+
+- [ ] I know what descriptive statistics is and I can easily calculate average, median, etc.
+
+- [ ] I know how to create a variable 
+
+- [ ] I know how to visually represent distribution of a variable using a histogram
