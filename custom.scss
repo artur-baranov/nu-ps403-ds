@@ -81,12 +81,6 @@ table {
   border: none;
   color: $white;
 
-  &:hover,
-  &:focus {
-    background-color: $nu-dark;
-    color: $white;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  }
 }
 
 .btn-outline-primary {

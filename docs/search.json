@@ -4,14 +4,14 @@
     "href": "index.html",
     "title": "PS403 Statistics and Probability",
     "section": "",
-    "text": "PS 403 • Fall 2025  Department of Political Science\n\nNorthwestern University\n\n\nThis site is designed to support students enrolled in the PS403 Statistics and Probability course. Here, you will find lab materials. In the section, we will focus on coding and practicing the concepts covered in the lectures.\n\n\n\n\n\n   Friday\n   11:00 AM – 11:50 AM\n   Scott Hall 212\n\n\n\n\n\n\n   Friday\n   9:00 AM – 11:00 AM\n   Scott Hall 110"
+    "text": "PS 403 • Fall 2025  Department of Political Science\n\nNorthwestern University\n\n\nThis site is designed to support students enrolled in the PS403 Statistics and Probability course. Here, you will find lab materials. In the section, we will focus on coding and practicing the concepts covered in the lectures.\n\n\n\n\n\n   Friday\n   11:00 AM – 11:50 AM\n   Scott Hall 212\n\n\n\n\n\n\n   Friday\n   9:30 AM – 11:00 AM\n   Scott Hall 110"
   },
   {
     "objectID": "index.html#description",
     "href": "index.html#description",
     "title": "PS403 Statistics and Probability",
     "section": "",
-    "text": "PS 403 • Fall 2025  Department of Political Science\n\nNorthwestern University\n\n\nThis site is designed to support students enrolled in the PS403 Statistics and Probability course. Here, you will find lab materials. In the section, we will focus on coding and practicing the concepts covered in the lectures.\n\n\n\n\n\n   Friday\n   11:00 AM – 11:50 AM\n   Scott Hall 212\n\n\n\n\n\n\n   Friday\n   9:00 AM – 11:00 AM\n   Scott Hall 110"
+    "text": "PS 403 • Fall 2025  Department of Political Science\n\nNorthwestern University\n\n\nThis site is designed to support students enrolled in the PS403 Statistics and Probability course. Here, you will find lab materials. In the section, we will focus on coding and practicing the concepts covered in the lectures.\n\n\n\n\n\n   Friday\n   11:00 AM – 11:50 AM\n   Scott Hall 212\n\n\n\n\n\n\n   Friday\n   9:30 AM – 11:00 AM\n   Scott Hall 110"
   },
   {
     "objectID": "index.html#schedule",
@@ -30,8 +30,15 @@
   {
     "objectID": "ps403-d_01.html",
     "href": "ps403-d_01.html",
-    "title": "Introduction to R",
+    "title": "Data Exploration and Wrangling",
     "section": "",
-    "text": "Before we start\n\nartur-baranov.github.io/nu-ps403-ds\n\n\nlibrary(qrcode)\nqr_code('https://artur-baranov.github.io/nu-ps403-ds') |&gt;\n  plot()\n\n\n\n\n\n\n\n\n\nDownload script"
+    "text": "Any questions?\n\n\nartur-baranov.github.io/nu-ps403-ds\n\n\nlibrary(qrcode)\nqr_code('https://artur-baranov.github.io/nu-ps403-ds') |&gt;\n  plot()\n\n\n\n\n\n\n\n\n\nDownload script\n\n\n\nDownload data"
+  },
+  {
+    "objectID": "ps403-d_01.html#within-data",
+    "href": "ps403-d_01.html#within-data",
+    "title": "Data Exploration and Wrangling",
+    "section": "Within data",
+    "text": "Within data\nSometimes we need to work not only with specific variables, but also with specific observations. For example, let’s check how many observations we have for post-communist countries (poco). This is a sort of subgroup within our data.\n\ncpds_subset %&gt;%\n  filter(poco == 1) %&gt;%\n  nrow()\n\n[1] 345\n\n\nAnd how many observations there are for eu countries?\n\n...\n\nNow, trickier. There are logical operators. What about the observations that are post communist AND part of the EU? More formally, hopefully you remember it from mathcamp, we want \\(\\text{poco} \\cap \\text{eu}\\).\n\ncpds_subset %&gt;%\n  filter(poco == 1 & eu == 1) %&gt;%\n  nrow()\n\n[1] 194\n\n\nHow about \\(\\text{poco} \\cup \\text{eu}\\)? Use OR (|) operator instead &.\n\n...\n\nAnd if you want to record the data, don’t forget to save it to another object! E.g., cpds_eupoco.\n\ncpds_eupoco = cpds_subset %&gt;%\n  filter(poco == 1 & eu == 1) \n\nLet’s see the result.\n\ncpds_eupoco %&gt;%\n  head()\n\n# A tibble: 6 × 6\n   year country   gini    eu openc  poco\n  &lt;dbl&gt; &lt;chr&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;\n1  2007 Bulgaria    NA     1 124.      1\n2  2008 Bulgaria    NA     1 125.      1\n3  2009 Bulgaria    NA     1  92.7     1\n4  2010 Bulgaria    NA     1 104.      1\n5  2011 Bulgaria    NA     1 118.      1\n6  2012 Bulgaria    NA     1 125.      1\n\n\nBut we will need this object for the rest of the script, so feel free to remove it from the environment.\n\nrm(cpds_eupoco)\n\nmaybe? boxplot gini by poco, eu"
   }
 ]

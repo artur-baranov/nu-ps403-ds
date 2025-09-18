@@ -35,7 +35,7 @@ This site is designed to support students enrolled in the PS403 Statistics and P
 ### Office Hours Details
 
 - {{< fa calendar >}} &nbsp; Friday
-- {{< fa clock >}} &nbsp; 9:00 AM -- 11:00 AM
+- {{< fa clock >}} &nbsp; 9:30 AM -- 11:00 AM
 - {{< fa location-dot >}} &nbsp; Scott Hall 110
 :::
 

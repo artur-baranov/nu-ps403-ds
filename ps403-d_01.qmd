@@ -1,5 +1,5 @@
 ---
-title: "Introduction to R"
+title: "Data Exploration and Wrangling"
 subtitle: "Week 1"
 date: 2025-09-19
 format: 
@@ -9,6 +9,8 @@ toc: true
 ---
 
 # Before we start
+
+-   Any questions?
 
 <center style="font-size:24px">artur-baranov.github.io/nu-ps403-ds</center>
 
@@ -23,22 +25,273 @@ qr_code('https://artur-baranov.github.io/nu-ps403-ds') |>
 <center>
 <a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_01.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
+<br>
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/cpds.xlsx" class="btn btn-primary" role="button" download="cpds.xlsx" style="width:200px" target="_blank">Download data</a>
+</center><br>
+
+# Agenda
+
+-   Organizing working directory
+
+-   Adapting to R and RStudio
+
+-   Exploring Data
+
+-   Subsetting data
+
+# Finding Data
+
+Let’s explore Comparative Political Dataset. It consists of political and institutional country-level data. Take a look on their [codebook](https://cpds-data.org/wp-content/uploads/2024/11/codebook_cpds.pdf).
+
+Today we are working with the following variables.
+
+-   `year` - year variable
+
+-   `country` - country variable
+
+-   `prefisc_gini` - Gini index. What is it?
+
+-   `eu` - member states of the European Union identification
+
+-   `openc` - Openness of the economy (trade as % of GDP)
+
+-   `poco` -  post-communist countries post-communist countries identification
+
+
+Now, let's load two libraries: `tidyverse` for data analysis and `readxl` to work with excel files in R. Likely you have both libraries. But if you don't, do it using `install.packages()`. Run it only once! 
+
+```{r}
+#| message: false
+
+library(tidyverse)
+library(readxl)
+
+cpds = read_excel("data/cpds.xlsx")
+```
+
 
 # Data Exploration
 
+How many observations (*rows*) do we have in the data (`nrow()`)?
+
+```{r}
+nrow(cpds)
+```
+
+How many variables (*columns*) the data has (`ncol()`)?
+
+```{r}
+ncol(cpds)
+```
+
+Alternatively, we can call it dimension (`dim()`).
+
+```{r}
+dim(cpds)
+```
+
+We have a lot of variables in the data, so printing the variables names would be tricky. This is the point where it is better to use the codebook. However, you can print, say, first couple of variables combining `names()` function, pipe (`%>%`) and `head()`.
+
+```{r}
+names(cpds) %>%
+  head()
+```
+
+How does the data look like? Using `head()` let’s present first rows to get the sense. What is NA?
+
+```{r}
+head(cpds)
+```
+
+# Describing data
+
+Quite often, to convey how your data looks, we present **descriptive statistics.** Let's go through them.
+Explore the distribution of Gini below. In the What is the minimum value? What is the problem?
+
+```{r}
+min(cpds$prefisc_gini)
+```
+What is the maximum value?
+
+```{r}
+max(cpds$prefisc_gini, na.rm = TRUE)
+```
+
+Now, calculate the average.
+
+```{r}
+mean(cpds$prefisc_gini, na.rm = TRUE)
+```
+
+Alternatively, we can present the most used descriptive statistics all together using `summary()` function. Theoretically, the variable ranges from 0 (perfect equality) to 100 (perfect inequality)
+
+```{r}
+summary(cpds$prefisc_gini)
+```
+Explore the distribution of Gini below. What can we observe? Pay attention to `aes()` argument.
+
+```{r}
+ggplot(cpds) +
+  geom_histogram(aes(x = prefisc_gini)) 
+```
+
+# Choosing variables
+
+Let’s subset the variables we have outlined for the ease of working with data. We can choose variables using `select()`.
+
+```{r}
+cpds_subset = cpds %>%
+  select(year, country, prefisc_gini, eu, openc, poco) 
+```
+
+Now, let's `rename()` the Gini variable so it's more straightforward.
+
+```{r}
+cpds_subset = cpds_subset %>%
+  rename(gini = prefisc_gini)
+```
+
+Let's see if it worked out!
+
+```{r}
+names(cpds_subset)
+```
+
+# Conditional Subset
+
+## Within data
+
+Sometimes we need to work not only with specific variables, but also with specific observations. For example, let's check how many observations we have for post-communist countries (`poco`). This is a sort of subgroup within our data.
+
+```{r}
+cpds_subset %>%
+  filter(poco == 1) %>%
+  nrow()
+```
+
+And how many observations there are for `eu` countries?
+
+```{r}
+#| eval: false
+
+...
+```
+
+Now, trickier. There are logical operators. What about the observations that are post communist **AND** part of the EU? More formally, hopefully you remember it from mathcamp, we want $\text{poco} \cap \text{eu}$. 
+
+```{r}
+cpds_subset %>%
+  filter(poco == 1 & eu == 1) %>%
+  nrow()
+```
+
+How about $\text{poco} \cup \text{eu}$? Use OR (`|`) operator instead `&`.
+
+```{r}
+#| eval: false
+
+...
+```
+
+And if you want to record the data, don't forget to save it to another object! E.g., `cpds_eupoco`.
+
+```{r}
+cpds_eupoco = cpds_subset %>%
+  filter(poco == 1 & eu == 1) 
+```
+
+Let's see the result.
+
+```{r}
+cpds_eupoco %>%
+  head()
+```
+
+But we will need this object for the rest of the script, so feel free to remove it from the environment.
+
+```{r}
+rm(cpds_eupoco)
+```
 
 
-# Quick Refresher on Tidyverse
+maybe?
+boxplot gini by poco, eu
 
-## Choosing variables
-select
+# Creating a new variable 
 
-## Creating a new variable 
+Let's create a new variable, above median openness of the economy (`abopen`). Once again, `openc` is a trade openness: % of GDP as trade. We use two functions here: `mutate()` function to create a new variable or amend existing one. Then, we use `ifelse()` which is a bit messy -- but getting through it would pay off a lot in the long term. Take a moment to make sense of what is going on.
 
-E.g. Chances of an event
+```{r}
+cpds_subset = cpds_subset %>%
+  mutate(abopen = ifelse(openc >= median(openc, na.rm = TRUE), 1, 0))
+```
 
-## Conditional Subset
+Now, let's calculate the *probability** of being above the median in openness to trade, given that a country is post-communist. We need to aggregate the data. Let's leave only post communist countries in data using `filter()`, and then `count()` trade openness outcomes: 0 being below median, 1 being above median.
 
-## Sample_n
+```{r}
+cpds_subset %>%
+  filter(poco == 1) %>%
+  count(abopen)
+```
+
+Which is 
+
+$$
+P = \frac{\text{Number of favorable outcomes}}{\text{Total number of outcomes}} = \frac{273}{273+39} = 0.875
+$$
+
+Let's double check. This is basic (and a bit incorrect due to the nature of the data) way of thinking about probability, but quite helpful to start developing the intuition!
+
+```{r}
+273 / (273 + 39)
+```
+
+::: {.callout-tip icon="false"}
+## Coding Task
+
+Imagine, you were asked the following question. Does a communist past lead to a more open economy?
+
+Let's explore these variables:
+
+-   `openc` - Openness of the economy (trade as % of GDP)
+
+-   `poco` -  post-communist countries post-communist countries identification
+
+They are already in `cpds_subset`. Draw a distribution of `openc` variable using `geom_histogram()`.
+
+```{r}
+#| eval: false
+
+ggplot(...) +
+  ...(aes(x = openc)) 
+```
+
+Add an average of `openc` to the plot using `geom_vline()`
+
+```{r}
+#| eval: false
+
+ggplot(cpds_subset) +
+  geom_histogram(...(x = ...)) +
+  ...(xintercept = mean(cpds_subset$openc))
+```
+
+Compare post-communist countries to non post-communist countries (`poco`) in terms of the openness of the economy (`openc`). Use `geom_boxplot()`, and don't forget to make sure the class of the variable is the right one!
+
+```{r}
+
+```
+
+Insert a chunk, add labels and cutsomize the plot. 
+
+...
+
+Did we address the question posed at the beginning? Did we approach it descriptively, predictively, or causally? Take a moment to think through that and write down your thoughts.
+
+
+:::
+
+# Sample_n
 
 # Loops
