@@ -160,8 +160,6 @@ names(cpds_subset)
 
 # Conditional Subset
 
-## Within data
-
 Sometimes we need to work not only with specific variables, but also with specific observations. For example, let's check how many observations we have for post-communist countries (`poco`). This is a sort of subgroup within our data.
 
 ```{r}
@@ -186,7 +184,7 @@ cpds_subset %>%
   nrow()
 ```
 
-How about $\text{poco} \cup \text{eu}$? Use OR (`|`) operator instead `&`.
+How about $\text{POCO} \cup \text{EU}$? Use OR (`|`) operator instead of `&`.
 
 ```{r}
 #| eval: false
@@ -214,9 +212,6 @@ But we will need this object for the rest of the script, so feel free to remove 
 rm(cpds_eupoco)
 ```
 
-
-maybe?
-boxplot gini by poco, eu
 
 # Creating a new variable 
 

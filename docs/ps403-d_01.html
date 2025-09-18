@@ -4930,10 +4930,7 @@ window.Quarto = {
   <li><a href="#data-exploration" id="toc-data-exploration" class="nav-link" data-scroll-target="#data-exploration">Data Exploration</a></li>
   <li><a href="#describing-data" id="toc-describing-data" class="nav-link" data-scroll-target="#describing-data">Describing data</a></li>
   <li><a href="#choosing-variables" id="toc-choosing-variables" class="nav-link" data-scroll-target="#choosing-variables">Choosing variables</a></li>
-  <li><a href="#conditional-subset" id="toc-conditional-subset" class="nav-link" data-scroll-target="#conditional-subset">Conditional Subset</a>
-  <ul class="collapse">
-  <li><a href="#within-data" id="toc-within-data" class="nav-link" data-scroll-target="#within-data">Within data</a></li>
-  </ul></li>
+  <li><a href="#conditional-subset" id="toc-conditional-subset" class="nav-link" data-scroll-target="#conditional-subset">Conditional Subset</a></li>
   <li><a href="#creating-a-new-variable" id="toc-creating-a-new-variable" class="nav-link" data-scroll-target="#creating-a-new-variable">Creating a new variable</a></li>
   <li><a href="#extra-sampling-and-loops" id="toc-extra-sampling-and-loops" class="nav-link" data-scroll-target="#extra-sampling-and-loops">Extra: Sampling and Loops</a></li>
   <li><a href="#check-list" id="toc-check-list" class="nav-link" data-scroll-target="#check-list">Check list</a></li>
@@ -5154,8 +5151,6 @@ artur-baranov.github.io/nu-ps403-ds
 </section>
 <section id="conditional-subset" class="level1">
 <h1>Conditional Subset</h1>
-<section id="within-data" class="level2">
-<h2 class="anchored" data-anchor-id="within-data">Within data</h2>
 <p>Sometimes we need to work not only with specific variables, but also with specific observations. For example, let’s check how many observations we have for post-communist countries (<code>poco</code>). This is a sort of subgroup within our data.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>cpds_subset <span class="sc">%&gt;%</span></span>
@@ -5178,7 +5173,7 @@ artur-baranov.github.io/nu-ps403-ds
 <pre><code>[1] 194</code></pre>
 </div>
 </div>
-<p>How about <span class="math inline">\(\text{poco} \cup \text{eu}\)</span>? Use OR (<code>|</code>) operator instead <code>&amp;</code>.</p>
+<p>How about <span class="math inline">\(\text{POCO} \cup \text{EU}\)</span>? Use OR (<code>|</code>) operator instead of <code>&amp;</code>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>...</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -5207,8 +5202,6 @@ artur-baranov.github.io/nu-ps403-ds
 <div class="cell">
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(cpds_eupoco)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>maybe? boxplot gini by poco, eu</p>
-</section>
 </section>
 <section id="creating-a-new-variable" class="level1">
 <h1>Creating a new variable</h1>
