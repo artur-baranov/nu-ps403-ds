@@ -241,7 +241,7 @@ $$
 P = \frac{\text{Number of favorable outcomes}}{\text{Total number of outcomes}} = \frac{273}{273+39} = 0.875
 $$
 
-Let's double check. This is basic (and a bit incorrect due to the nature of the data) way of thinking about probability, but quite helpful to start developing the intuition!
+Let’s double-check. This is a basic (and somewhat inaccurate, given the nature of the data) way of thinking about probability, but it’s quite helpful for building intuition
 
 ```{r}
 273 / (273 + 39)
