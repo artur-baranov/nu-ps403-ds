@@ -305,11 +305,11 @@ gini_distribution
 Get through the code step-by-step. We are creating an empty dataframe `sample_averages`, which records averages of the sampled data.
 
 ```{r}
-set.seed(123)
+set.seed(12)
 sample_averages = data.frame()
 
 for(i in 1:100){
-  temporary_sample <- sample_n(cpds_subset, size = 80)                   # sample 80 observations
+  temporary_sample <- sample_n(cpds_subset, size = 50)                   # sample 50 observations
   temporary_sample_average <- mean(temporary_sample$gini, na.rm = TRUE)  # calculate the sample average 
   sample_averages <- rbind(sample_averages, temporary_sample_average) # add the sample average to the df
 }
@@ -324,7 +324,6 @@ Let's plot the average on the same graph. Repeat the process by increasing the n
 gini_distribution +
   geom_vline(xintercept = mean(sample_averages$average, na.rm = TRUE),
              color = "red") 
-  
 ```
 
 # Check list
