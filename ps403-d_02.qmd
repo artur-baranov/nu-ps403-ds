@@ -26,6 +26,8 @@ Let's refresh what we did last week.
 First of all, let's load the `tidyverse` and `readxl` libraries. Then, load the Comparative Political Dataset from the last class.
 
 ```{r}
+#| message: false
+
 library(tidyverse)
 library(readxl)
 
@@ -50,7 +52,7 @@ Rename the `rae_ele` to `fractionalization` in the `cpds_subset` dataframe.
   ...(fractionalization = ...)
 ```
 
-Draw a histogram to show the distribution of Douglas Rae's index of electoral `fractionalization.`
+Draw a histogram to show the distribution of Douglas Rae's index of electoral `fractionalization`.
 
 ```{r}
 #| eval: false
@@ -220,7 +222,7 @@ ggplot(violence_2000) +
   geom_boxplot(aes(x = as.factor(regime), y = violence))
 ```
 
-The problem is, by default R treats `regime` variable as continuous, but it's a categorical! Explore the graph below.
+The problem is, by default R treats `regime` variable as continuous, but it's categorical! Explore the graph below.
 
 ```{r}
 library(DiagrammeR)
@@ -239,13 +241,23 @@ graph LR
 ")
 ```
 
+These are the basic classes of data in R. Some examples might include:
+
+-   **Nominal**: Names, Labels, Brands, Country names, etc.
+
+-   **Ordinal**: Educational Levels (High School-BA-MA-PhD), Customer Rating (Unsatisfied-Neutral-Satisfied), etc.
+
+-   **Discrete**: Number of customers per day, number of seats won by political parties, etc.
+
+-   **Continuous**: Height of people, voter turnout, etc.
+
 You can check the class using `class()` function.
 
 ```{r}
 class(violence_2000$regime)
 ```
 
-And you can make it a category by transforming it to factor using `as.factor()`. Other functions are `as.numeric()`and `as.character()`.
+And you can make it categorical by transforming it to factor using `as.factor()`. Other functions are `as.numeric()`and `as.character()`.
 
 ```{r}
 violence_2000$regime = as.factor(violence_2000$regime)
@@ -253,7 +265,7 @@ violence_2000$regime = as.factor(violence_2000$regime)
 
 # Summarizing and Presenting data 
 
-Treating a variable as a categorcal would help us to summarize data per category. For example, you want to present information of average level of violence in different regimes. 
+Treating a variable as categorcal would help us to summarize data per category. For example, you want to present information of average level of violence in different regimes. 
 
 Let's switch to the main dataset. Quickly prepare the data using `case_when()` function -- a better version of `ifelse()`. Here we are using the codebook's guidence to rename the categories.
 
@@ -262,10 +274,10 @@ Let's switch to the main dataset. Quickly prepare the data using `case_when()` f
 
 violence_data = violence_data %>%
   mutate(regime = case_when(regime > 0.75 ~ "Democratic",
-            regime == 0.75 ~ "Minimally Democratic",
-            regime == 0.5 ~ "Ambivalent",
-            regime == 0.25 ~ "Autocratic",
-            regime < 0.25 ~ "Closed Autocratic"))
+                            regime == 0.75 ~ "Minimally Democratic",
+                            regime == 0.5 ~ "Ambivalent",
+                            regime == 0.25 ~ "Autocratic",
+                            regime < 0.25 ~ "Closed Autocratic"))
 
 head(violence_data)
 ```
@@ -273,9 +285,9 @@ head(violence_data)
 A tricky but helpful operation is groupping a variable, and then calculating statistics. [This picture really helps me wrap my head around it](https://artur-baranov.github.io/images/groupby_sum_eng.png).
 
 ```{r}
-regime_violence = violence_2000 %>%
+regime_violence = violence_data %>%
   group_by(regime) %>%
-  summarize(average = mean(violence))
+  summarize(average = mean(violence, na.rm = TRUE))
 
 regime_violence
 ```
