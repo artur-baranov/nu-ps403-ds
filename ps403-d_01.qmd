@@ -1,5 +1,5 @@
 ---
-title: "Data Exploration and Wrangling"
+title: "Data Exploration"
 subtitle: "Week 1"
 date: 2025-09-19
 format: 

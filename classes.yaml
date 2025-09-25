@@ -1,7 +1,15 @@
-- title: "Data Exploration and Wrangling"
+- title: "Data Exploration"
   Week: 1
   date: 2025-09-19
   Link: "[{{< fa link >}}](/ps403-d_01.qmd)"
   Code: "[{{< fa file-code >}}](scripts/ps403-d_01.qmd){target='_blank'}"
   Data: "[{{< fa database >}}](data/cpds.xlsx){target='_blank'}"
+  type: "schedule"
+
+- title: "Data Wrangling and Classes"
+  Week: 2
+  date: 2025-09-26
+  Link: "[{{< fa link >}}](/ps403-d_02.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_02.qmd){target='_blank'}"
+  Data: " "
   type: "schedule"
