@@ -7404,11 +7404,6 @@ var createPalette = {
 <center>
 <a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
-<br>
-<center>
-<a href="https://artur-baranov.github.io/nu-ps403-ds/data/cpds.xlsx" class="btn btn-primary" role="button" download="cpds.xlsx" style="width:200px" target="_blank">Download data</a>
-</center>
-<p><br></p>
 </section>
 <section id="review-of-the-previous-session" class="level1">
 <h1>Review of the Previous Session</h1>
@@ -7666,8 +7661,8 @@ Autocracy Democracy
 <span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="st">    co --&gt; n[Numeric]</span></span>
 <span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div class="DiagrammeR html-widget html-fill-item" id="htmlwidget-9536e9ee9b3f92b5e241" style="width:100%;height:464px;"></div>
-<script type="application/json" data-for="htmlwidget-9536e9ee9b3f92b5e241">{"x":{"diagram":"\ngraph LR\n    D[Data] --> C[Categorical]\n    D --> N[Numerical]\n    C --> no[Nominal]\n    C --> Or[Ordinal]\n    N --> di[Discrete]\n    N --> co[Continuous]\n    no --> c[Character]\n    Or --> f[Factor]\n    di --> i[Integer]\n    co --> n[Numeric]\n"},"evals":[],"jsHooks":[]}</script>
+<div class="DiagrammeR html-widget html-fill-item" id="htmlwidget-8fa8253908903d1b12c4" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-8fa8253908903d1b12c4">{"x":{"diagram":"\ngraph LR\n    D[Data] --> C[Categorical]\n    D --> N[Numerical]\n    C --> no[Nominal]\n    C --> Or[Ordinal]\n    N --> di[Discrete]\n    N --> co[Continuous]\n    no --> c[Character]\n    Or --> f[Factor]\n    di --> i[Integer]\n    co --> n[Numeric]\n"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 <p>You can check the class using <code>class()</code> function.</p>
@@ -7734,8 +7729,8 @@ Autocracy Democracy
 
     <script>
 
-      function styleCell_3ps6nvxy5daybegrr7nl(i, j, css_id) {
-          var table = document.getElementById("tinytable_3ps6nvxy5daybegrr7nl");
+      function styleCell_okmmfv0vxx32wq2t9i62(i, j, css_id) {
+          var table = document.getElementById("tinytable_okmmfv0vxx32wq2t9i62");
           var cell = table.rows[i]?.cells[j];  // Safe navigation to avoid errors
           if (cell) {
               console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
@@ -7745,7 +7740,7 @@ Autocracy Democracy
           }
       }
       function insertSpanRow(i, colspan, content) {
-        var table = document.getElementById('tinytable_3ps6nvxy5daybegrr7nl');
+        var table = document.getElementById('tinytable_okmmfv0vxx32wq2t9i62');
         var newRow = table.insertRow(i);
         var newCell = newRow.insertCell(0);
         newCell.setAttribute("colspan", colspan);
@@ -7753,8 +7748,8 @@ Autocracy Democracy
         // this may be unsafe, but innerText does not interpret <br>
         newCell.innerHTML = content;
       }
-      function spanCell_3ps6nvxy5daybegrr7nl(i, j, rowspan, colspan) {
-        var table = document.getElementById("tinytable_3ps6nvxy5daybegrr7nl");
+      function spanCell_okmmfv0vxx32wq2t9i62(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_okmmfv0vxx32wq2t9i62");
         const targetRow = table.rows[i];
         const targetCell = targetRow.cells[j];
         for (let r = 0; r < rowspan; r++) {
@@ -7784,14 +7779,14 @@ Autocracy Democracy
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: 0, j: 0 }, { i: 0, j: 1 },  ], css_id: 'tinytable_css_hsb2jrgqvv2ex6hggg14',}, 
-          { positions: [ { i: 5, j: 0 }, { i: 5, j: 1 },  ], css_id: 'tinytable_css_5duyiumwpt68nzwqmc6w',}, 
+          { positions: [ { i: 0, j: 0 }, { i: 0, j: 1 },  ], css_id: 'tinytable_css_9ul4tqkh9fu0970890zb',}, 
+          { positions: [ { i: 5, j: 0 }, { i: 5, j: 1 },  ], css_id: 'tinytable_css_3fapvlydhmbvsazc8hrs',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  styleCell_3ps6nvxy5daybegrr7nl(cell.i, cell.j, group.css_id);
+                  styleCell_okmmfv0vxx32wq2t9i62(cell.i, cell.j, group.css_id);
               });
           });
       });
@@ -7799,11 +7794,11 @@ Autocracy Democracy
 
     <style>
 
-.table td.tinytable_css_hsb2jrgqvv2ex6hggg14, .table th.tinytable_css_hsb2jrgqvv2ex6hggg14 { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
-.table td.tinytable_css_5duyiumwpt68nzwqmc6w, .table th.tinytable_css_5duyiumwpt68nzwqmc6w { border-bottom: solid #d3d8dc 0.1em; }
+.table td.tinytable_css_9ul4tqkh9fu0970890zb, .table th.tinytable_css_9ul4tqkh9fu0970890zb { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+.table td.tinytable_css_3fapvlydhmbvsazc8hrs, .table th.tinytable_css_3fapvlydhmbvsazc8hrs { border-bottom: solid #d3d8dc 0.1em; }
 </style>
     <div class="container">
-      <table class="table table-borderless" id="tinytable_3ps6nvxy5daybegrr7nl" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+      <table class="table table-borderless" id="tinytable_okmmfv0vxx32wq2t9i62" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
         <thead>
         
               <tr>

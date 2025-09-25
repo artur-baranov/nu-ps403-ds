@@ -15,10 +15,6 @@ toc: true
 <center>
 <a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
-<br>
-<center>
-<a href="https://artur-baranov.github.io/nu-ps403-ds/data/cpds.xlsx" class="btn btn-primary" role="button" download="cpds.xlsx" style="width:200px" target="_blank">Download data</a>
-</center><br>
 
 # Review of the Previous Session
 
