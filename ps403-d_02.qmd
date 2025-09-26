@@ -13,7 +13,7 @@ toc: true
 -   Any questions?
 
 <center>
-<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_02.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
 
 # Review of the Previous Session

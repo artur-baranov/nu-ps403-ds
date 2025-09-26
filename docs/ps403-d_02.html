@@ -7402,7 +7402,7 @@ var createPalette = {
 <li>Any questions?</li>
 </ul>
 <center>
-<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_02.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
 </section>
 <section id="review-of-the-previous-session" class="level1">
@@ -7649,8 +7649,8 @@ Autocracy Democracy
 <span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="st">    co --&gt; n[Numeric]</span></span>
 <span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div class="DiagrammeR html-widget html-fill-item" id="htmlwidget-ac3332211caeb70860ab" style="width:100%;height:464px;"></div>
-<script type="application/json" data-for="htmlwidget-ac3332211caeb70860ab">{"x":{"diagram":"\ngraph LR\n    D[Data] --> C[Categorical]\n    D --> N[Numerical]\n    C --> no[Nominal]\n    C --> Or[Ordinal]\n    N --> di[Discrete]\n    N --> co[Continuous]\n    no --> c[Character]\n    Or --> f[Factor]\n    di --> i[Integer]\n    co --> n[Numeric]\n"},"evals":[],"jsHooks":[]}</script>
+<div class="DiagrammeR html-widget html-fill-item" id="htmlwidget-898c078d0ca9afa26164" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-898c078d0ca9afa26164">{"x":{"diagram":"\ngraph LR\n    D[Data] --> C[Categorical]\n    D --> N[Numerical]\n    C --> no[Nominal]\n    C --> Or[Ordinal]\n    N --> di[Discrete]\n    N --> co[Continuous]\n    no --> c[Character]\n    Or --> f[Factor]\n    di --> i[Integer]\n    co --> n[Numeric]\n"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 <p>These are the basic classes of data in R. Some examples might include:</p>
@@ -7733,8 +7733,8 @@ Attaching package: &#39;tinytable&#39;</code></pre>
 
     <script>
 
-      function styleCell_bjhvfrnfab3705c9q6me(i, j, css_id) {
-          var table = document.getElementById("tinytable_bjhvfrnfab3705c9q6me");
+      function styleCell_tsqf6tobz80fykpg9pvr(i, j, css_id) {
+          var table = document.getElementById("tinytable_tsqf6tobz80fykpg9pvr");
           var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
           if (cell) {
               console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
@@ -7743,8 +7743,8 @@ Attaching package: &#39;tinytable&#39;</code></pre>
               console.warn(`Cell at (${i}, ${j}) not found.`);
           }
       }
-      function spanCell_bjhvfrnfab3705c9q6me(i, j, rowspan, colspan) {
-        var table = document.getElementById("tinytable_bjhvfrnfab3705c9q6me");
+      function spanCell_tsqf6tobz80fykpg9pvr(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_tsqf6tobz80fykpg9pvr");
         const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
         if (!targetCell) {
           console.warn(`Cell at (${i}, ${j}) not found.`);
@@ -7775,14 +7775,14 @@ Attaching package: &#39;tinytable&#39;</code></pre>
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '6', j: 0 }, { i: '6', j: 1 },  ], css_id: 'tinytable_css_meheq19zz8x3tzypek14',}, 
-          { positions: [ { i: '0', j: 0 }, { i: '0', j: 1 },  ], css_id: 'tinytable_css_qnw6i3s8u2sq1aypjezw',}, 
+          { positions: [ { i: '6', j: 0 }, { i: '6', j: 1 },  ], css_id: 'tinytable_css_wkqie1rkdhlsze5a1ezn',}, 
+          { positions: [ { i: '0', j: 0 }, { i: '0', j: 1 },  ], css_id: 'tinytable_css_tzcsbw6nzwycu07ucnwx',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  styleCell_bjhvfrnfab3705c9q6me(cell.i, cell.j, group.css_id);
+                  styleCell_tsqf6tobz80fykpg9pvr(cell.i, cell.j, group.css_id);
               });
           });
       });
@@ -7790,11 +7790,11 @@ Attaching package: &#39;tinytable&#39;</code></pre>
 
     <style>
 
-.table td.tinytable_css_meheq19zz8x3tzypek14, .table th.tinytable_css_meheq19zz8x3tzypek14 { border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_qnw6i3s8u2sq1aypjezw, .table th.tinytable_css_qnw6i3s8u2sq1aypjezw { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+.table td.tinytable_css_wkqie1rkdhlsze5a1ezn, .table th.tinytable_css_wkqie1rkdhlsze5a1ezn { border-bottom: solid #d3d8dc 0.1em; }
+.table td.tinytable_css_tzcsbw6nzwycu07ucnwx, .table th.tinytable_css_tzcsbw6nzwycu07ucnwx { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
 </style>
     <div class="container">
-      <table class="table table-borderless" id="tinytable_bjhvfrnfab3705c9q6me" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+      <table class="table table-borderless" id="tinytable_tsqf6tobz80fykpg9pvr" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
         <thead>
         
               <tr>
