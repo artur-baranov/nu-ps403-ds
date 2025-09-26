@@ -1,0 +1,387 @@
+---
+title: "Data Wrangling and Classes"
+subtitle: "Week 2"
+date: 2025-09-26
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+# Before we start
+
+-   Any questions?
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_02.qmd" class="btn btn-primary" role="button" download="ps403-d_01.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+
+# Review of the Previous Session
+
+Let's refresh what we did last week. 
+
+::: callout-note
+## Review
+
+First of all, let's load the `tidyverse` and `readxl` libraries. Then, load the Comparative Political Dataset from the last class.
+
+```{r}
+#| message: false
+
+library(tidyverse)
+library(readxl)
+
+cpds = read_excel("data/cpds.xlsx")
+```
+
+Imagine you are interested in fractionalizon of electoral systems (you can read more about fractionalization after class [here](https://sk.sagepub.com/ency/edvol/the-encyclopedia-of-political-science/chpt/fractionalization-index)). Subset the following variables from the dataset: `year`, `country`, `rae_ele` and `fed`.
+
+```{r}
+#| eval: false
+
+cpds_subset = cpds ...
+  ...(year, ...)
+```
+
+Rename the `rae_ele` to `fractionalization` in the `cpds_subset` dataframe.
+
+```{r}
+#| eval: false
+
+... = cpds_subset %>%
+  ...(fractionalization = ...)
+```
+
+Draw a histogram to show the distribution of Douglas Rae's index of electoral `fractionalization`.
+
+```{r}
+#| eval: false
+
+... +
+  geom_histogram(...)
+```
+
+What is the minimum value? What is the maximum value? 
+
+```{r}
+#| eval: false
+
+...
+```
+
+The index indicates that 1 corresponds to a fragmented system (votes are widely dispersed across parties), while 0 means that everyone voted for the same party. What is the average?
+
+```{r}
+
+```
+
+Draw a `geom_boxplot()` to see the relationship between the federalism (`fed`) on the x axis and `fractionalization` on the y axis. The federalism is coded as: 0 = no; 1 = weak; 2 = strong. Is something wrong? 
+
+```{r}
+#| eval: false
+
+...
+  ...(aes(...))
+```
+
+Don't forget to remove the `cpds` and `cpds_subset` dataframes.
+
+```{r}
+#| eval: false
+
+rm(cpds, cpds_subset)
+```
+
+:::
+
+# Agenda for Today
+
+-   Data Classes
+
+-   Data Wrangling
+
+-   Presenting data with `tinytable`
+
+# Exploring and Wrangling Data
+
+Let's load the data
+
+```{r}
+load(url("https://github.com/vdeminstitute/vdemdata/raw/6bee8e170578fe8ccdc1414ae239c5e870996bc0/data/vdem.RData"))
+```
+
+This is the V-Dem dataset. For your reference, their codebook is available [here](https://v-dem.net/documents/38/V-Dem_Codebook_v14.pdf).
+
+The dataset is huge! Be careful
+
+```{r}
+#| results: hold
+nrow(vdem)
+ncol(vdem)
+```
+
+Imagine you are interested in the relationship between regime type and physical violence. Let’s `select()` and rename the variables we will work with. Quite unfortunately, the names of the variables are not as straightforward. The regime index is `e_v2x_polyarchy_5C` and Physical violence index is `v2x_clphy`. And you can combine both actions in the same function!
+
+```{r}
+violence_data = vdem %>%
+  select(country_name, 
+         year, 
+         regime = e_v2x_polyarchy_5C, 
+         violence = v2x_clphy) 
+```
+
+Let's see the result
+
+```{r}
+head(violence_data)
+```
+
+That was the first step. Let's subset even more data. Let's analyze the distribution of the Violence Index in the year 2000. We need to **filter** the data for this task.
+
+```{r}
+violence_2000 = violence_data %>%
+  filter(year == 2000)
+```
+
+The higher the number, the better the physical integrity in a given country. 
+
+```{r}
+#| warning: false
+
+ggplot(data = violence_2000) +
+  geom_histogram(aes(x = violence))
+```
+
+Let's customize the plot a bit.
+
+```{r}
+ggplot(data = violence_2000) +
+  geom_histogram(aes(x = violence)) +
+  labs(title = "Physical Integrity Rights Index",
+       subtitle = "In 2000",
+       x = "Violence Integrity Index",
+       y = "") +
+  theme_bw()
+``` 
+
+Imagine, you asked the following question. Is it true that in the year 2000 democracies had better violence integrity rights index?
+
+Firstly, you we need to differentiate between the regimes. Using `mutate()` function we can create and modify existing variables. Let's do that!
+
+```{r}
+violence_2000 = violence_2000 %>%
+  mutate(democracy = case_when(regime >= 0.5 ~ "Democracy",
+                               regime < 0.5 ~ "Autocracy"))
+
+head(violence_2000)
+```
+
+There are multiple ways to visually compare between two groups. 
+
+Let's draw histograms first.
+
+```{r}
+#| message: false
+
+ggplot(violence_2000) +
+  geom_histogram(aes(x = violence, fill = democracy))
+```
+
+But comparing distributions between groups is easier with the boxplot. Are they different?
+
+```{r}
+ggplot(violence_2000) +
+  geom_boxplot(aes(x = democracy, y = violence))
+```
+
+# Data Classes
+
+You can represent the same concepts with numbers or characters. For example, we have two variables indicating the regime type. One of which is more granular, `regime`. Another is binary, which is `democracy`. Explore the latter first.
+
+```{r}
+with(violence_2000,
+     table(regime))
+```
+
+Now, explore the former. Side note, **pay attention to syntax**, the functions are almost equivalent. 
+
+```{r}
+table(violence_2000$democracy)
+```
+Theoretically, we can plot even more detailed graph using `geom_boxplot()` if we use `regime` data. Let's see. Something fails! 
+
+```{r}
+ggplot(violence_2000) +
+  geom_boxplot(aes(x = regime, y = violence))
+```
+
+Let's correct. Now it's better!
+
+```{r}
+ggplot(violence_2000) +
+  geom_boxplot(aes(x = as.factor(regime), y = violence))
+```
+
+The problem is, by default R treats `regime` variable as continuous, but it's categorical! Explore the graph below.
+
+```{r}
+library(DiagrammeR)
+mermaid("
+graph LR
+    D[Data] --> C[Categorical]
+    D --> N[Numerical]
+    C --> no[Nominal]
+    C --> Or[Ordinal]
+    N --> di[Discrete]
+    N --> co[Continuous]
+    no --> c[Character]
+    Or --> f[Factor]
+    di --> i[Integer]
+    co --> n[Numeric]
+")
+```
+
+These are the basic classes of data in R. Some examples might include:
+
+-   **Nominal**: Names, Labels, Brands, Country names, etc.
+
+-   **Ordinal**: Educational Levels (High School-BA-MA-PhD), Customer Rating (Unsatisfied-Neutral-Satisfied), etc.
+
+-   **Discrete**: Number of customers per day, number of seats won by political parties, etc.
+
+-   **Continuous**: Height of people, voter turnout, etc.
+
+You can check the class using `class()` function.
+
+```{r}
+class(violence_2000$regime)
+```
+
+And you can make it categorical by transforming it to factor using `as.factor()`. Other functions are `as.numeric()`and `as.character()`.
+
+```{r}
+violence_2000$regime = as.factor(violence_2000$regime)
+```
+
+# Summarizing and Presenting data 
+
+Treating a variable as categorcal would help us to summarize data per category. For example, you want to present information of average level of violence in different regimes. 
+
+Let's switch to the main dataset. Quickly prepare the data using `case_when()` function -- a better version of `ifelse()`. Here we are using the codebook's guidence to rename the categories.
+
+```{r}
+#| warning: false
+
+violence_data = violence_data %>%
+  mutate(regime = case_when(regime > 0.75 ~ "Democratic",
+                            regime == 0.75 ~ "Minimally Democratic",
+                            regime == 0.5 ~ "Ambivalent",
+                            regime == 0.25 ~ "Autocratic",
+                            regime < 0.25 ~ "Closed Autocratic"))
+
+head(violence_data)
+```
+
+A tricky but helpful operation is groupping a variable, and then calculating statistics. [This picture really helps me wrap my head around it](https://artur-baranov.github.io/images/groupby_sum_eng.png).
+
+```{r}
+regime_violence = violence_data %>%
+  group_by(regime) %>%
+  summarize(average = mean(violence, na.rm = TRUE))
+
+regime_violence
+```
+
+Finally, let's present that in a nice way using `tinytable` library.
+
+```{r}
+library(tinytable)
+
+regime_violence %>% 
+  tt(title = "Average level of violence in different regimes")
+```
+
+# Check list
+
+- [ ] I am confident in drawing distributions: either using `geom_histogram()` or `geom_boxplot()`
+
+- [ ] I know what data classes are, and how to change them, too.
+
+- [ ] I know how to recode variable using combination of `case_when()` and `mutate()`
+
+- [ ] I can easily `summarize()` variables using `group_by()` to present statistics by category
+
+- [ ] I can present nice tables with `tinytable` library
+
+# Optional Exercises
+
+Create a new `violence_2010` dataset, by subsetting `violence_data` for year 2010.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+violence_2010 = violence_data %>%
+  ...
+```
+
+:::
+
+Using `mutate()` and `case_when()`, create a new variable `violence_binary` that is "High integrity" if the violence variable is greater or equal to 0.5, and "Low integrity" if it is less than 0.5.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+violence_2010 = violence_2010 %>%
+  ...(violence_binary = case_when(... >= 0.5 ~ "High Integrity",
+                                     ...))
+```
+
+:::
+
+Compare the two variables coding: `violence` and `violence_binary`. Check there classes. What is the difference? Briefly describe the type of each variable. Imagine you were to draw a boxplot, how would class differences in the variables define their use case on the graph?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+YOUR SOLUTION HERE
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Let's calculate the average regime type per `violence_binary`. Use `group_by()` and `summarize()`. Save it to `output` object.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+output = violence_2010 %>%
+  ...
+```
+
+:::
+
+Using `tt()` present the `output`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
