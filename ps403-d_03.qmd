@@ -1,0 +1,123 @@
+---
+title: "Data Presentation"
+subtitle: "Week 3"
+date: 2025-10-03
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+# Before we start
+
+-   Any questions?
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_03.qmd" class="btn btn-primary" role="button" download="ps403-d_03.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+<br>
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/cpds.xlsx" class="btn btn-primary" role="button" download="cpds.xlsx" style="width:200px" target="_blank">Download data</a>
+</center><br>
+
+::: callout-note
+## Review
+
+First, load the `tidyverse` library
+
+```{r}
+#| message: false
+
+library(tidyverse)
+```
+
+Then, load the V-Dem data
+
+```{r}
+#| eval: false
+
+load(url("https://github.com/vdeminstitute/vdemdata/raw/6bee8e170578fe8ccdc1414ae239c5e870996bc0/data/vdem.RData"))
+```
+
+
+You are interested in corruption in various geographical regions. Select year (`year`), region (`e_regionpol_7C`) and corruption (`v2x_corr`) variables from the `vdem` dataset.
+
+```{r}
+#| eval: false
+
+corruption_data = ... %>%
+  ...(year, ..., v2x_corr) 
+```
+
+
+As we are working with the V-Dem data, let's rename variables so it's more straightforward.
+
+```{r}
+#| eval: false
+
+corruption_data = corruption_data ...
+  ...(region = e_regionpol_7C,
+      corruption = ...)
+```
+
+Calculate the average of the `corruption` variable. Don't forget about the `na.rm = TURE` argument!
+
+```{r}
+#| eval: false
+
+...
+```
+
+Using `group_by()` and `summarize()` calculate the average corruption for all regions in the dataset.
+
+```{r}
+#| eval: false
+
+corruption_data ...
+  (...) %>%
+  ...(average = ...(..., na.rm = T))
+```
+
+Lastly, let's see the distributions of corruption across regions. Draw a boxplot below with `region` variable on the X axis, and `corruption` variable on the Y axis.
+
+```{r}
+#| eval: false
+
+ggplot(data = corruption_data) +
+  ...(aes(x = ..., y = ...))
+```
+
+Something is wrong, right? We haven't checked the classes of the variables, and apparently the `region` variable has to be changed. Let's check it's class first.
+
+```{r}
+#| eval: false
+
+...(corruption_data$...)
+```
+
+What class should it be? Let's recode it directly on the plot.
+
+```{r}
+#| eval: false
+
+...(...) +
+  geom_boxplot(aes(x = ...(region), y = ...))
+```
+
+:::
+
+visualizations
+
+one variable
++ variance/covariance
++ sd
++ mean
+
+two variables
+correlation?
+geom_point
+
+tinytable
+
+
+
