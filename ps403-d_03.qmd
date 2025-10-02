@@ -106,6 +106,9 @@ What class should it be? Let's recode it directly on the plot.
 
 :::
 
+
+tinytable first
+
 visualizations
 
 one variable
@@ -117,7 +120,6 @@ two variables
 correlation?
 geom_point
 
-tinytable
 
 
 
