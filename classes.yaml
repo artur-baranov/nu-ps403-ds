@@ -13,3 +13,11 @@
   Code: "[{{< fa file-code >}}](scripts/ps403-d_02.qmd){target='_blank'}"
   Data: " "
   type: "schedule"
+  
+- title: "Data Presentation Using Tables"
+  Week: 3
+  date: 2025-10-03
+  Link: "[{{< fa link >}}](/ps403-d_03.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_03.qmd){target='_blank'}"
+  Data: "[{{< fa database >}}](data/wvs.csv){target='_blank'}"
+  type: "schedule"

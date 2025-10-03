@@ -1,5 +1,5 @@
 ---
-title: "Data Presentation"
+title: "Data Presentation Using Tables"
 subtitle: "Week 3"
 date: 2025-10-03
 format: 
@@ -12,12 +12,14 @@ toc: true
 
 -   Any questions?
 
+-   For sampling hints for the next homework lab, look for Week 1 script.
+
 <center>
 <a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_03.qmd" class="btn btn-primary" role="button" download="ps403-d_03.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
 <br>
 <center>
-<a href="https://artur-baranov.github.io/nu-ps403-ds/data/cpds.xlsx" class="btn btn-primary" role="button" download="cpds.xlsx" style="width:200px" target="_blank">Download data</a>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/wvs.csv" class="btn btn-primary" role="button" download="wvs.csv" style="width:200px" target="_blank">Download data</a>
 </center><br>
 
 ::: callout-note
@@ -49,7 +51,6 @@ corruption_data = ... %>%
   ...(year, ..., v2x_corr) 
 ```
 
-
 As we are working with the V-Dem data, let's rename variables so it's more straightforward.
 
 ```{r}
@@ -58,14 +59,6 @@ As we are working with the V-Dem data, let's rename variables so it's more strai
 corruption_data = corruption_data ...
   ...(region = e_regionpol_7C,
       corruption = ...)
-```
-
-Calculate the average of the `corruption` variable. Don't forget about the `na.rm = TURE` argument!
-
-```{r}
-#| eval: false
-
-...
 ```
 
 Using `group_by()` and `summarize()` calculate the average corruption for all regions in the dataset.
@@ -104,22 +97,282 @@ What class should it be? Let's recode it directly on the plot.
   geom_boxplot(aes(x = ...(region), y = ...))
 ```
 
+Finally, remove the data we worked with from the environment.
+
+```{r}
+#| eval: false
+
+rm(vdem, corruption_data)
+```
+
+
 :::
 
 
-tinytable first
+# Agenda
 
-visualizations
+-   Summarizing Data
 
-one variable
-+ variance/covariance
-+ sd
-+ mean
+-   Presenting Data with Tables
 
-two variables
-correlation?
-geom_point
+# Exploring Data
 
+Today we are working with the World Values Survey data. You can find the codebook [here](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp).
 
+Load the data. Explore the dimensions. This is a smaller version of the dataset, the full one is available on the WVS [website](https://www.worldvaluessurvey.org/wvs.jsp).
 
+```{r}
+#| results: hold
 
+wvs = read.csv("data/wvs.csv")
+
+ncol(wvs)
+nrow(wvs)
+```
+
+Explore the names of the variables.
+
+```{r}
+colnames(wvs)
+```
+
+For your convenience, here are the variables' description from the codebook:
+
+-   `B_COUNTRY_ALPHA` - country name
+
+-   `Q108` - Government´s vs individual´s responsibility (10 - people should take more responsibility to provide for themselves, 1 - the government should take more responsibility to ensure that everyone is provided for)
+
+-   `Q191` - Justifiable: Violence against other people (10 - justifiable, 1 - not justifiable)
+
+-   `Q194` - Justifiable: Political violence (10 - justifiable, 1 - not justifiable)
+
+Let's get the **range** of data. What does it mean? 
+
+```{r}
+range(wvs$Q108)
+```
+
+Let's double check with summary. Same! Take a look on the codebook.
+
+```{r}
+summary(wvs$Q108)
+```
+
+For the purposes of this exercise, drop all missing or irrelevant answers (which you shoudl be **very** careful erasing in real task).
+
+```{r}
+wvs = wvs %>%
+  filter(Q108 > 0)
+```
+
+And for our convenience, rename the variables.
+
+```{r}
+wvs = wvs %>%
+  rename(country = B_COUNTRY_ALPHA,
+         responsibility = Q108,
+         violence = Q191,
+         political_violence = Q194)
+```
+
+# Presenting Data in a Table
+
+Now, let's present the descriptive statistics for the `responsibility` variable, but for each country. Again, tricky `group_by()` command! Make sure to include `mean()`, `sd()` and `median()`.
+
+```{r}
+responsibility_description = wvs %>%
+  group_by(country) %>%
+  summarize(average = mean(responsibility),
+            sd = sd(responsibility),
+            median = median(responsibility))
+
+responsibility_description %>%
+  head()
+```
+
+Great! Now, let's make publishable table to present the variable. However, focus only on Post-Soviet countries. Make sure to go through syntax!
+
+```{r}
+post_soviet = c("ARM", "AZE", "BLR", "EST", "GEO", "KAZ", "KGZ", "LVA", "LTU", "MDA", "RUS", "TJK",  "TKM", "UKR", "UZB")
+
+post_soviet_responsibility = responsibility_description %>%
+  filter(country %in% post_soviet)
+
+post_soviet_responsibility
+```
+
+To make it publishable and nice-looking load the `tinytable` library.
+
+```{r}
+#| message: false
+
+library(tinytable)
+```
+
+Try it out! Looks great, but we can do more.
+
+```{r}
+post_soviet_responsibility %>%
+  tt()
+```
+
+Make sure to format it well. For example, capitalize the names of the columns. Other functions for changing the character case [here](https://stringr.tidyverse.org/reference/case.html) - you can apply it to observations, too.
+
+```{r}
+colnames(post_soviet_responsibility) = colnames(post_soviet_responsibility) %>%
+  str_to_title() 
+```
+
+Now, add caption, and round up numbers. Highlight, Central Asian countries: Kazakhstan (KAZ), Kyrgyzstan (KGZ), Tajikistan (TJK) and Uzbekistan (UZB).
+
+```{r}
+post_soviet_responsibility %>%
+  tt(caption = "Descriptive Statistics for Post Soviet Region") %>%
+  format_tt(digits = 2) %>%
+  style_tt(i = c(2, 3, 5, 6), # rows
+           j = 1:4, # columns
+           background = "teal",
+           color = "white",
+           bold = TRUE)
+```
+
+# Extra
+
+Here's another example of what you can do with this. First, prepare the data. Then, draw a `tinytable`. But this is **extra**!
+
+```{r}
+post_soviet_description = wvs %>%
+  group_by(country) %>%
+  summarize(average_r = mean(responsibility),
+            sd_r = sd(responsibility),
+            average_v = mean(violence),
+            sd_v = sd(violence),
+            average_pv = mean(political_violence),
+            sd_pv = sd(political_violence)) %>%
+  filter(country %in% post_soviet) 
+
+extra_table = post_soviet_description %>%
+  tt() %>%
+  group_tt(j = list("Responsibility" = 2:3, 
+                    "Violence" = 4:5,
+                    "Political Violence" = 6:7)) %>%
+  { colnames(.) = c("Country", "Average", "SD", "Average", "SD", "Average", "SD"); . } %>%
+  format_tt(digits = 2)
+
+extra_table
+```
+
+You even can add plots into the table! You can explore it [here](https://vincentarelbundock.github.io/tinytable).
+
+# Check list
+
+- [ ] I am confident in summarizing variables using combination of `group_by()` and `summarize()`
+
+- [ ] I can present nice looking tables with `tinytable`
+
+- [ ] I know how to use `%in%` operator to filter data
+
+# Optional Exercises
+
+Explore `violence` variable in `wvs` dataset. What is its range?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Draw a histogram of `violence` variable using `ggplot()`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Anything strange? What does negative values stand for? Remove if needed.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Present average and median for `violence` for each country.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Now, present the data for Latin American countries using `tinytable`. Here is the vector for your convenience.
+
+```{r}
+latin_america <- c(
+  "ARG",  # Argentina
+  "BOL",  # Bolivia
+  "BRA",  # Brazil
+  "CHL",  # Chile
+  "COL",  # Colombia
+  "CRI",  # Costa Rica
+  "CUB",  # Cuba
+  "DOM",  # Dominican Republic
+  "ECU",  # Ecuador
+  "SLV",  # El Salvador
+  "GTM",  # Guatemala
+  "HND",  # Honduras
+  "MEX",  # Mexico
+  "NIC",  # Nicaragua
+  "PAN",  # Panama
+  "PRY",  # Paraguay
+  "PER",  # Peru
+  "URY",  # Uruguay
+  "VEN"   # Venezuela
+)
+
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Customize the `tinytable` so the columns look like titles. Highlight top-3 most violent countries with `red` color.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::

@@ -1,0 +1,52 @@
+---
+title: "drafts"
+---
+
+# Data Visualization
+
+
+```{r}
+wvs_ru = wvs %>%
+  filter(B_COUNTRY_ALPHA == "RUS") %>%
+  filter(Q108 > 0)
+
+ggplot(wvs %>% filter(Q108 > 0, B_COUNTRY_ALPHA == "RUS")) +
+  geom_histogram(aes(x = Q108))
+```
+
+
+
+191 and 194 correlations
+
+```{r}
+wvs_byc = wvs %>%
+  group_by(B_COUNTRY_ALPHA) %>%
+  filter(Q108 > 0,
+         Q194 > 0) %>%
+  summarize(Q108 = mean(Q108),
+            Q194 = mean(Q194))
+
+ggplot(wvs_byc) +
+  geom_point(aes(x = Q108, y = Q194))
+
+cor(wvs_byc$Q194, wvs_byc$Q108)
+```
+
+
+
+
+# Visualizing
+
+## One Variable
+
+one variable
++ variance/covariance
++ sd
++ mean
+
+## Two Variables
+
+two variables
+correlation?
+geom_point
+
