@@ -60,6 +60,12 @@ This site is designed to support students enrolled in the PS403 Statistics and P
 
 -   [Political Science datasets](https://github.com/erikgahner/PolData)
 
+### Tables
+
+-   [Tinytable tutorial](https://vincentarelbundock.github.io/tinytable/vignettes/tinytable.html)
+
+-   [kableExtra tutorial](https://bookdown.org/yihui/rmarkdown-cookbook/kableextra.html)
+
 ### Visualization
 
 -   [Introduction to ggplot2](https://jrnold.github.io/r4ds-exercise-solutions/data-visualisation.html)
