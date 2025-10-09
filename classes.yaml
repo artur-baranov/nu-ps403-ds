@@ -21,3 +21,11 @@
   Code: "[{{< fa file-code >}}](scripts/ps403-d_03.qmd){target='_blank'}"
   Data: "[{{< fa database >}}](data/wvs.csv){target='_blank'}"
   type: "schedule"
+
+- title: "Data Visualization"
+  Week: 4
+  date: 2025-10-10
+  Link: "[{{< fa link >}}](/ps403-d_04.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_04.qmd){target='_blank'}"
+  Data: "[{{< fa database >}}](data/whogov.csv){target='_blank'}"
+  type: "schedule"
