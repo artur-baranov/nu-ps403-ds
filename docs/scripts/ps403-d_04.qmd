@@ -1,0 +1,459 @@
+---
+title: "Data Visualization"
+subtitle: "Week 4"
+date: 2025-10-10
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+
+# Before we start
+
+-   Any questions?
+
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_04.qmd" class="btn btn-primary" role="button" download="ps403-d_04.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+<br>
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/whogov.csv" class="btn btn-primary" role="button" download="whogov.csv" style="width:200px" target="_blank">Download data</a>
+</center><br>
+
+
+::: callout-note
+## Review
+
+First, load the `tidyverse` library
+
+```{r}
+#| message: false
+
+library(tidyverse)
+```
+
+Load the World Values Survey data from the previous week's class.
+
+```{r}
+#| eval: false
+
+wvs = ...
+```
+
+Rename the variables:
+
+-   `B_COUNTRY_ALPHA` to `country`
+
+-   `Q191` to `violence`
+
+-   `Q194` to `political_violence`
+
+```{r}
+#| eval: false
+
+...
+```
+
+Calculate the average and standard deviation of `political_violence` by `country` using `group_by()` and `summarize()`. Save that to a new `pviolence_mean` object. 
+
+```{r}
+#| eval: false
+
+pviolence_mean = wvs %>%
+  ... %>%
+  summarize(mean = ...,
+            sd = ...)
+```
+
+Present first observations in the `pviolence_mean` using `head()`.
+
+```{r}
+#| eval: false
+
+head(pviolence_mean)
+```
+
+Leave only North American countries.
+
+```{r}
+#| eval: false
+
+north_america = c("CAN", "USA", "MEX")
+
+pviolence_mean_filtered = ...
+```
+
+
+Load the `tinytable` library and present a table describing North American countries using `tt()`. Round the numbers up to two digits. Change the background color of Mexico’s (MEX) standard-deviation cell to yellow. And if you have underscores or some other special symbols (for example, the variable has `_` underscores), don't forget to use `format_tt(escape = TRUE)`.
+
+```{r}
+#| eval: false
+
+library(tinytable)
+
+pviolence_mean_filtered %>%
+  tt() %>%
+  format_tt(...) %>%
+  ...(i = 2,
+      ...,
+      background = "yellow")
+```
+
+And a small preview of what's going to come!
+
+```{r}
+#| eval: false
+
+ggplot(wvs) +
+  geom_point(aes(x = violence,
+                 y = political_violence))
+```
+
+
+Now, clear the environment using the broom icon!
+
+
+:::
+
+# Agenda
+
+-   Summarizing Data
+
+-   Presenting Data with Graphs
+
+-   Exploring Relationships Visually
+
+# Exploring Data
+
+Today we are working with WhoGov dataset, which provides information on Members of Cabinets. As usual, I recommend taking a look at their [codebook](https://politicscentre.nuffield.ox.ac.uk/media/4117/whogov_codebook.pdf).
+
+```{r}
+whogov = read.csv("data/WhoGov.csv")
+```
+
+
+First of all, these are the following variables we are going to work with today:
+
+-   `country_name` is a country name
+
+-   `n_individuals` number of unique persons in the cabinet
+
+-   `leaderexperience_continuous` the number of years the person has been leader of the country in total.
+
+-   `system_category` the regime type
+
+-   `average_total` the average tenure for people in cabinet
+
+Say, you are interested in the relationship between the leader's duration in the office (`leaderexperience_continuous`) and the tenure for people in cabinet (`average_total`).
+
+# One Continuous Variable
+
+Start with exploring the distribution of average tenure of people in the cabinet (`average_total`)
+
+```{r}
+ggplot(whogov) +
+  geom_histogram(aes(x = average_total)) 
+```
+
+You can inform your reader by providing extra information. Add the average to the plot using `geom_vline()` and change the number of `bins` to 20. Save the graph to the `avgind_plot` object.
+
+```{r}
+#| warning: false
+
+avgind_plot = ggplot(whogov) +
+  geom_histogram(aes(x = average_total), bins = 20) +
+  geom_vline(aes(xintercept = mean(average_total, na.rm = TRUE)), color = "#EE4B2B") 
+
+avgind_plot
+```
+
+Let's name the axes and customize the graph. Feel free to explore ggplot themes [here](https://r-charts.com/ggplot2/themes).
+
+```{r}
+#| warning: false
+
+avgind_plot = avgind_plot +
+  labs(x = "Average Tenure ",
+       y = "Count",
+       title = "Distribution of Average Tenure",
+       subtitle = "In Cabinets") +
+  theme_bw()
+
+avgind_plot
+```
+
+Change the breaks to a more readable format. 
+
+```{r}
+avgind_plot +
+  scale_x_continuous(breaks = seq(0,                         # start sequence from
+                                  max(whogov$average_total,
+                                      na.rm = TRUE),         # end sequence with
+                                  3))                        # increment
+```
+
+# Two Continuous Variables
+
+Now, continue exploring the relationship we were interested in. Let's plot two distributions with densities. Make sure to go through the syntax. And be careful, now the X axis named incorrectly! 
+
+-   Compare the distributions
+
+-   What alternative plot would be more suitable for comparing distributions?
+
+Add `xlim(-5, 20)`
+
+```{r}
+#| warning: false
+
+ggplot(whogov) +
+  geom_density(aes(x = average_total), fill = "red", alpha = 0.5) +
+  geom_density(aes(x = leaderexperience_continuous), fill = "blue", alpha = 0.5) 
+```
+
+Let's draw a scatter plot using `geom_point()`. It's more appropriate if we are interested in a relationship, rather than distribution comparison. What's going on?
+
+```{r}
+ggplot(whogov) +
+  geom_point(aes(x = leaderexperience_continuous,
+                 y = average_total))
+```
+
+Let's zoom in to explore two political regimes. Use `system_category` to leave only `Military dictatorship` and `Parliamentary democracy`. 
+
+```{r}
+two_regimes = whogov %>% 
+  filter(system_category %in% c("Military dictatorship",
+                                                "Parliamentary democracy"))
+```
+
+Then, color the points.
+
+```{r}
+regime_tenure = ggplot(two_regimes) +
+                geom_point(aes(x = leaderexperience_continuous,
+                               y = average_total,
+                               color = system_category))
+
+regime_tenure
+```
+
+The patterns are seen clearer now! But let's also add panels of graphs with `facet_grid()`. Add `scales = "free"` argument to the facet grid function.
+
+```{r}
+#| warning: false 
+
+regime_tenure = regime_tenure +
+  facet_grid(system_category ~ .)
+
+regime_tenure
+```
+
+Add title, name the axes and add a `theme_minimal()`.
+
+```{r}
+regime_tenure +
+  labs(y = "Average Cabinet Tenure",
+       x = "Leader's Tenure",
+       title = "Leader's Tenure and Cabinet Tenure",
+       color = "Political Regime") +
+  theme_minimal()
+```
+
+Finally, let's see the correlation. Is it a big one?
+
+```{r}
+cor(two_regimes$n_individuals, two_regimes$leaderexperience_continuous)
+```
+
+For your reference, take a look on the [cheatsheet](https://rstudio.github.io/cheatsheets/html/data-visualization.html).
+
+# Check list
+
+- [ ] I have no trouble naming my axes and providing titles to the plot with `labs()` function.
+
+- [ ] I know that I can draw distributions with `geom_density()`.
+
+- [ ] I know I can work with `scale_x_...` and `scale_y_...` to change the presentation of X or Y axes.
+
+- [ ] I can create separate plots for different groups using `facet_grid()` (and with `facet_wrap()` -- take a look on the exercises).
+
+- [ ] I like customizing graphs with different themes! And I know how to change colors of elements in `ggplot()`.
+
+# Extra
+
+## Plotting a categorical variable
+
+You can use histograms to count number of observations in each category, and then plot this count. Let's try this out with political regimes (`system_category`). First, count the number of observations in each group. This is a dataframe.
+
+```{r}
+regime_count = whogov %>%
+  group_by(system_category) %>%
+  count()
+
+regime_count
+```
+
+Now, plot it using `geom_col()`.
+
+```{r}
+regime_count %>%
+  ggplot(aes(x = system_category,
+             y = n)) +
+  geom_col() 
+```
+
+Change the order using `reorder()`, so the the count is presented consecutively.
+
+```{r}
+regime_count %>%
+  ggplot(aes(x = reorder(system_category, n),
+             y = n)) +
+  geom_col() 
+```
+
+Now, customize the graph. Change the color of the bars with `fill = ` argument in `geom_col()`, flip the axes making it easier to read names of the regime with `coord_flip()`. Add names of the axes with `labs()`, and change the theme to `theme_dark`.
+
+```{r}
+regime_count %>%
+  ggplot(aes(x = reorder(system_category, n),
+             y = n)) +
+  geom_col(fill = "lightblue") +
+  coord_flip() +
+  labs(x = "Political Rregime",
+       y = "Count") +
+  theme_dark()
+```
+
+## Plotting Trends
+
+Let's explore average age of cabinets in the Switzerland. First, create the dataframe with data containing only the Switzerland data.
+
+```{r}
+swiss_tenure = whogov %>%
+  filter(country_name == "Switzerland")
+```
+
+Now, plot it with `geom_line()`. Make `year` on X axis, and `average_total` on Y axis.
+
+```{r}
+ggplot(swiss_tenure,
+       aes(x = year,
+                y = average_total)) +
+  geom_line() +
+  geom_point()
+```
+
+## Plotting ovelapping plots
+
+Imagine you are interested in comparing two distributions: `average_total` (the average tenure of the cabinet), and the `leaderexperience_continuous` (tenure of the leader). We have plotted it with in the beginning. 
+
+```{r}
+#| warning: false
+
+ggplot(whogov) +
+  geom_density(aes(x = average_total), fill = "blue", alpha = 0.5) +
+  geom_density(aes(x = leaderexperience_continuous), fill = "red", alpha = 0.5) +
+  xlim(-5,20)
+```
+
+
+If you want to compare two groups making one group appear on top of the other, you have an option of doing so using `ggridges`. But you also need to restructure the data to a **long format**.
+
+```{r}
+library(ggridges)
+
+whogov_long = whogov %>%
+  select(average_total,
+         leaderexperience_continuous) %>% # choose the variables
+  pivot_longer(1:2)                       # make the data of a longer format
+
+head(whogov_long)
+```
+
+Finally, plot the restrucutred data.
+
+```{r}
+ggplot(whogov_long) +
+  geom_density_ridges2(aes(x = value,
+                           y = name)) +
+  xlim(-5, 20)
+```
+
+
+
+# Optional Exercises
+
+Explore `n_individuals` variable. Draw a histogram, 
+
+```{r}
+#| eval: false
+
+...
+```
+
+Explore a new function. Use `facet_wrap()` with `system_cateogry`. Compare it with `facet_grid()`. What's the difference?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Make the `scale = "free"` in `face_wrap()`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Now, explore relationship between `leaderexperience_continuous` (X) and `n_individuals` (Y). Draw a `geom_point()`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Add a `facet_wrap()` layer to the previous graph, by `system_category`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Customize the graph. Name the axes, make the scales free, add color to the observations dots on the graph based on the `system_category`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
