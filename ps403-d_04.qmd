@@ -150,14 +150,14 @@ Say, you are interested in the relationship between the leader's duration in the
 
 # One Continuous Variable
 
-Start with exploring the distribution of tenure for people in cabinet (`average_total`)
+Start with exploring the distribution of average tenure of people in the cabinet (`average_total`)
 
 ```{r}
 ggplot(whogov) +
   geom_histogram(aes(x = average_total)) 
 ```
 
-You can inform you reader by providing extra information. Add the average to the plot using `geom_vline()` and change the number of `bins` to 20. Save the graph to the `avgind_plot` object.
+You can inform your reader by providing extra information. Add the average to the plot using `geom_vline()` and change the number of `bins` to 20. Save the graph to the `avgind_plot` object.
 
 ```{r}
 #| warning: false
@@ -184,7 +184,7 @@ avgind_plot = avgind_plot +
 avgind_plot
 ```
 
-Change the breaks to a more readable format to better convey the average. 
+Change the breaks to a more readable format. 
 
 ```{r}
 avgind_plot +
@@ -200,7 +200,7 @@ Now, continue exploring the relationship we were interested in. Let's plot two d
 
 -   Compare the distributions
 
--   What is the alternative plot more suitable for the comparison of distributions?
+-   What alternative plot would be more suitable for comparing distributions?
 
 Add `xlim(-5, 20)`
 
@@ -212,7 +212,7 @@ ggplot(whogov) +
   geom_density(aes(x = leaderexperience_continuous), fill = "blue", alpha = 0.5) 
 ```
 
-Let's draw a scatter plot using `geom_point()`. It's more appropriate if we are interested in relationship, rather than distribution comparison. What's going on?
+Let's draw a scatter plot using `geom_point()`. It's more appropriate if we are interested in a relationship, rather than distribution comparison. What's going on?
 
 ```{r}
 ggplot(whogov) +
@@ -266,6 +266,8 @@ Finally, let's see the correlation. Is it a big one?
 ```{r}
 cor(two_regimes$n_individuals, two_regimes$leaderexperience_continuous)
 ```
+
+For your reference, take a look on the [cheatsheet](https://rstudio.github.io/cheatsheets/html/data-visualization.html).
 
 # Check list
 
@@ -382,8 +384,6 @@ ggplot(whogov_long) +
 
 
 # Optional Exercises
-
-leaderexperience_continuous and n_individuals
 
 Explore `n_individuals` variable. Draw a histogram, 
 

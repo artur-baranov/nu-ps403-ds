@@ -4934,7 +4934,7 @@ Review
 </section>
 <section id="one-continuous-variable" class="level1">
 <h1>One Continuous Variable</h1>
-<p>Start with exploring the distribution of tenure for people in cabinet (<code>average_total</code>)</p>
+<p>Start with exploring the distribution of average tenure of people in the cabinet (<code>average_total</code>)</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(whogov) <span class="sc">+</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> average_total)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -4953,7 +4953,7 @@ Review
 </div>
 </div>
 </div>
-<p>You can inform you reader by providing extra information. Add the average to the plot using <code>geom_vline()</code> and change the number of <code>bins</code> to 20. Save the graph to the <code>avgind_plot</code> object.</p>
+<p>You can inform your reader by providing extra information. Add the average to the plot using <code>geom_vline()</code> and change the number of <code>bins</code> to 20. Save the graph to the <code>avgind_plot</code> object.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>avgind_plot <span class="ot">=</span> <span class="fu">ggplot</span>(whogov) <span class="sc">+</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> average_total), <span class="at">bins =</span> <span class="dv">20</span>) <span class="sc">+</span></span>
@@ -4986,7 +4986,7 @@ Review
 </div>
 </div>
 </div>
-<p>Change the breaks to a more readable format to better convey the average.</p>
+<p>Change the breaks to a more readable format.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>avgind_plot <span class="sc">+</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>,                         <span class="co"># start sequence from</span></span>
@@ -5011,7 +5011,7 @@ Review
 <p>Now, continue exploring the relationship we were interested in. Let’s plot two distributions with densities. Make sure to go through the syntax. And be careful, now the X axis named incorrectly!</p>
 <ul>
 <li><p>Compare the distributions</p></li>
-<li><p>What is the alternative plot more suitable for the comparison of distributions?</p></li>
+<li><p>What alternative plot would be more suitable for comparing distributions?</p></li>
 </ul>
 <p>Add <code>xlim(-5, 20)</code></p>
 <div class="cell">
@@ -5026,7 +5026,7 @@ Review
 </div>
 </div>
 </div>
-<p>Let’s draw a scatter plot using <code>geom_point()</code>. It’s more appropriate if we are interested in relationship, rather than distribution comparison. What’s going on?</p>
+<p>Let’s draw a scatter plot using <code>geom_point()</code>. It’s more appropriate if we are interested in a relationship, rather than distribution comparison. What’s going on?</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(whogov) <span class="sc">+</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> leaderexperience_continuous,</span>
@@ -5110,6 +5110,7 @@ Review
 <pre><code>[1] 0.2308111</code></pre>
 </div>
 </div>
+<p>For your reference, take a look on the <a href="https://rstudio.github.io/cheatsheets/html/data-visualization.html">cheatsheet</a>.</p>
 </section>
 <section id="check-list" class="level1">
 <h1>Check list</h1>
@@ -5281,7 +5282,6 @@ Review
 </section>
 <section id="optional-exercises" class="level1">
 <h1>Optional Exercises</h1>
-<p>leaderexperience_continuous and n_individuals</p>
 <p>Explore <code>n_individuals</code> variable. Draw a histogram,</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>...</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
