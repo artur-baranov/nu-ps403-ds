@@ -1,5 +1,94 @@
 ---
-title: "Untitled"
+title: "Relationships in Data"
+subtitle: "Week 5"
+date: 2025-10-17
+format: 
+  html:
+    embed-resources: true
+toc: true
 ---
 
-whogov: create a variable independent/partisan 
+# Before we start
+
+-   Any questions?
+
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_05.qmd" class="btn btn-primary" role="button" download="ps403-d_05.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+<br>
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/whogov.csv" class="btn btn-primary" role="button" download="whogov.csv" style="width:200px" target="_blank">Download data</a>
+</center><br>
+
+
+whogov: create a variable independent/partisan for the review
+
+::: callout-note
+## Review
+
+First, load the `tidyverse` library
+
+```{r}
+#| message: false
+
+library(tidyverse)
+```
+
+Load the WhoGov dataset.
+
+```{r}
+whogov = read.csv("data/WhoGov.csv")
+```
+
+First of all, **data wrangling** (*take a look on week 2 script*).
+
+Create a variable for independent and partisan leaders using `case_when()`.
+
+```{r}
+whogov = whogov %>%
+  mutate(indep = case_when(leader_party == "independent" ~ "Independent",
+                           leader_party != "indepdenent" ~ "Partisan"))
+```
+
+Check the distribution of the newly created variable using `table()`
+
+```{r}
+table(whogov$indep)
+```
+
+```{r}
+ggplot(whogov) +
+  
+```
+
+
+```{r}
+ggplot(whogov %>% filter(year >= 2000,
+                         system_category %in% c("Military dictatorship",
+                                                "Parliamentary democracy"))) +
+  geom_boxplot(aes(x = system_category,
+                   y = average_total)) +
+  facet_grid(~ indep)
+```
+
+```{r}
+whogov %>%
+  t_test(n_individuals ~ indep)
+```
+
+
+
+:::
+
+
+# Agenda
+
+-   Comparing distributions, *statistically*
+
+-   Analyzing relationships, *statistically*
+
+
+ggally?
+
+t.test and regressions
