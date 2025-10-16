@@ -1,0 +1,11 @@
+---
+title: "Data Management"
+subtitle: "Week 6"
+date: 2025-10-24
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+github desktop 
