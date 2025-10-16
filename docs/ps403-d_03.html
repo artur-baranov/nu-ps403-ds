@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.42">
+<meta name="generator" content="quarto-1.6.39">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -5014,122 +5014,505 @@ Review
 <div class="cell-output-display">
 <!-- preamble start -->
 
-    <script>
+    <script>// TinyTable JavaScript Framework
+// Function factory for creating table-specific operations
+window.TinyTable = {
+  // Helper to create Tabulator instance with Luxon dependency
+  createTabulator: function(elementId, config) {
+    const { DateTime } = window.luxon || {};
+    return new Tabulator(elementId, {
+      dependencies: { DateTime },
+      ...config
+    });
+  },
 
-      function styleCell_9qqmlii27bp5rdyen734(i, j, css_id) {
-          var table = document.getElementById("tinytable_9qqmlii27bp5rdyen734");
-          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
-          if (cell) {
-              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
-              cell.classList.add(css_id);
-          } else {
-              console.warn(`Cell at (${i}, ${j}) not found.`);
-          }
+  createTableFunctions: function (tableId) {
+    const spans = []; // {top, left, rowspan, colspan}
+
+    function resolveToAnchor(i, j) {
+      // find if (i,j) is inside any span; return that span's anchor if so
+      for (const s of spans) {
+        if (
+          i >= s.top && i < s.top + s.rowspan &&
+          j >= s.left && j < s.left + s.colspan
+        ) {
+          return { i: s.top, j: s.left };
+        }
       }
-      function spanCell_9qqmlii27bp5rdyen734(i, j, rowspan, colspan) {
-        var table = document.getElementById("tinytable_9qqmlii27bp5rdyen734");
+      return { i, j };
+    }
+
+    return {
+      styleCell: function (i, j, css_id) {
+        // normalize possible string indices
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
+        const { i: ai, j: aj } = resolveToAnchor(i, j);
+        const cell = table.querySelector(`[data-row="${ai}"][data-col="${aj}"]`);
+        if (!cell) return; // silently skip if not found (e.g., removed)
+        cell.classList.add(css_id);
+      },
+
+      spanCell: function (i, j, rowspan, colspan) {
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
         const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
         if (!targetCell) {
           console.warn(`Cell at (${i}, ${j}) not found.`);
+          return;
         }
 
-        // Get all cells that need to be removed
+        // record span so future styleCell calls map to the anchor
+        spans.push({ top: i, left: j, rowspan, colspan });
+
+        // remove covered cells (except anchor)
         const cellsToRemove = [];
         for (let r = 0; r < rowspan; r++) {
           for (let c = 0; c < colspan; c++) {
-            if (r === 0 && c === 0) continue; // Skip the target cell
+            if (r === 0 && c === 0) continue;
             const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
-            if (cell) {
-              cellsToRemove.push(cell);
-            }
+            if (cell) cellsToRemove.push(cell);
           }
         }
-
-        // Remove all cells
         cellsToRemove.forEach(cell => cell.remove());
 
-        // Set rowspan and colspan of the target cell if it exists
-        if (targetCell) {
-          targetCell.rowSpan = rowspan;
-          targetCell.colSpan = colspan;
-        }
+        // set HTML attributes for clarity/serialization
+        targetCell.setAttribute('rowspan', rowspan);
+        targetCell.setAttribute('colspan', colspan);
       }
+    };
+  }
+};
+
+// =============================================================================
+// TABULATOR CUSTOM FORMATTERS (revised)
+// =============================================================================
+
+// SVG sparkline
+function tinytable_sparkline(cell, p = {}) {
+  let values = cell.getValue() ?? [];
+  if (!Array.isArray(values)) values = [values];
+  // coerce to finite numbers & strip NaNs
+  values = values.map(Number).filter(Number.isFinite);
+  const n = values.length;
+  if (n === 0) return "";
+
+  const w = p.width ?? 120, h = p.height ?? 30, pad = p.pad ?? 2;
+  const color = p.color ?? "currentColor", sw = p.strokeWidth ?? 1.5;
+  const fill = p.fillArea ?? false;
+  const showDots = p.showDots ?? false;
+  const dotR = p.dotRadius ?? 1.75;
+  const ariaLabel = p.ariaLabel ?? `sparkline with ${n} points`;
+
+  // single pass for min/max
+  let min = Infinity, max = -Infinity;
+  for (let v of values) { if (v < min) min = v; if (v > max) max = v; }
+  const span = (max - min) || 1;
+
+  const x = i => pad + (i * (w - 2 * pad)) / Math.max(n - 1, 1);
+  const y = v => h - pad - ((v - min) * (h - 2 * pad)) / span;
+
+  let d = `M ${x(0)},${y(values[0])}`;
+  for (let i = 1; i < n; i++) d += ` L ${x(i)},${y(values[i])}`;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", ariaLabel);
+
+  const path = document.createElementNS(NS, "path");
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", sw);
+  path.setAttribute("vector-effect", "non-scaling-stroke");
+
+  if (fill) {
+    const area = document.createElementNS(NS, "path");
+    area.setAttribute("d", d + ` L ${x(n - 1)},${h - pad} L ${x(0)},${h - pad} Z`);
+    area.setAttribute("fill", color);
+    area.setAttribute("fill-opacity", p.fillOpacity ?? 0.25);
+    svg.appendChild(area);
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  } else {
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  }
+  svg.appendChild(path);
+
+  if (showDots) {
+    const dot = (i) => {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", x(i));
+      c.setAttribute("cy", y(values[i]));
+      c.setAttribute("r", dotR);
+      c.setAttribute("fill", color);
+      return c;
+    };
+    if (p.dots === "end") svg.appendChild(dot(n - 1));
+    else if (p.dots === "minmax") {
+      const iMin = values.indexOf(min), iMax = values.indexOf(max);
+      svg.appendChild(dot(iMin)); svg.appendChild(dot(iMax));
+    } else if (p.dots === true) {
+      for (let i = 0; i < n; i++) svg.appendChild(dot(i));
+    }
+  }
+
+  if (p.title) {
+    const title = document.createElementNS(NS, "title");
+    title.textContent = p.title;
+    svg.appendChild(title);
+  }
+
+  return svg;
+}
+
+// Canvas histogram
+function tinytable_histogram(cell, p = {}) {
+  let data = cell.getValue() ?? [];
+  if (!Array.isArray(data)) data = [data];
+  data = data.map(Number).filter(Number.isFinite);
+  const n = data.length;
+  if (n === 0) return "";
+
+  const cssWidth = p.width ?? 120;
+  const cssHeight = p.height ?? 30;
+  const color = p.color ?? "currentColor";
+  const gap = p.gap ?? 1;         // px gap between bars
+  const pad = p.pad ?? 0;         // inner padding
+  const ariaLabel = p.ariaLabel ?? `histogram with ${n} observations`;
+
+  // robust bins: Sturges as default; allow override
+  const k = Math.max(1, Math.min(64, p.bins ?? Math.ceil(Math.log2(n) + 1)));
+
+  // stats
+  let min = Infinity, max = -Infinity;
+  for (let v of data) { if (v < min) min = v; if (v > max) max = v; }
+
+  // zero-range safeguard -> single centered bar
+  const range = max - min;
+  const binWidth = range > 0 ? range / k : 1;
+
+  const bins = new Array(k).fill(0);
+  if (range === 0) {
+    // put all mass in the middle bin
+    bins[Math.floor(k / 2)] = n;
+  } else {
+    for (let v of data) {
+      let idx = Math.floor((v - min) / binWidth);
+      if (idx >= k) idx = k - 1; // clamp max edge
+      bins[idx]++;
+    }
+  }
+  const maxCount = Math.max(...bins, 1);
+
+  // HiDPI / Retina crispness
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", ariaLabel);
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  ctx.fillStyle = color;
+
+  const innerW = cssWidth - pad * 2;
+  const innerH = cssHeight - pad * 2;
+  const barW = innerW / k;
+
+  for (let i = 0; i < k; i++) {
+    const h = (bins[i] / maxCount) * innerH;
+    const x = pad + i * barW;
+    const y = cssHeight - pad - h;
+    // 0.5 translate helps crisp vertical edges on some displays
+    ctx.fillRect(Math.round(x) + 0.5, Math.floor(y), Math.max(0, barW - gap), Math.ceil(h));
+  }
+
+  if (p.title) canvas.title = p.title;
+  return canvas;
+}
+
+// Unified sorter that uses hidden rank field
+function tinytable_rank_sorter(a, b, aRow, bRow, column, dir, sorterParams) {
+  const rankField = sorterParams.rankField;
+  const aVal = aRow.getData()[rankField] || 0;
+  const bVal = bRow.getData()[rankField] || 0;
+  return aVal - bVal;
+}
+</script>
+
+    <script>
+      // Create table-specific functions using external factory
+      const tableFns_q3g38sgosaxfzk4ropui = TinyTable.createTableFunctions("tinytable_q3g38sgosaxfzk4ropui");
       // tinytable span after
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '7', j: 0 }, { i: '7', j: 1 }, { i: '7', j: 2 }, { i: '7', j: 3 },  ], css_id: 'tinytable_css_7sqg9t7csnsdr8qu5yks',}, 
-          { positions: [ { i: '0', j: 0 }, { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 },  ], css_id: 'tinytable_css_wqz39pwx40e1122k7mg8',}, 
+          { positions: [ { i: '7', j: 1 }, { i: '7', j: 2 }, { i: '7', j: 3 }, { i: '7', j: 4 } ], css_id: 'tinytable_css_98qyo6k71ty4ylgh24qf',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 } ], css_id: 'tinytable_css_vej14rssi77vgj0amq47',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  styleCell_9qqmlii27bp5rdyen734(cell.i, cell.j, group.css_id);
+                  tableFns_q3g38sgosaxfzk4ropui.styleCell(cell.i, cell.j, group.css_id);
               });
           });
       });
     </script>
 
+    <style type="text/css">
+
+
+.tinytable {
+
+--tt-border-color: black;
+--tt-header-border-color: black;
+--tt-striped-bg: rgba(0, 0, 0, .05);
+--tt-hover-bg: rgba(0, 0, 0, .075);
+--tt-caption-color: #6c757d;
+--tt-footnote-color: #6c757d;
+
+--tt-cell-padding: .5rem;
+--tt-cell-padding-sm: .25rem;
+--tt-table-margin: .5rem 0;
+--tt-caption-padding: .5rem 0;
+--tt-footnote-padding: .2rem .5rem;
+--tt-footnote-first-padding-top: .5rem;
+--tt-footnote-gap: .1rem;
+
+--tt-font-size-footnote: 0.875rem;
+--tt-font-size-sup: 0.75em;
+--tt-line-height-footnote: 1.25;
+--tt-line-height-footnote-tight: 1.2;
+--tt-font-weight-header: normal;
+
+--tt-border-width: 1px;
+--tt-border-width-tbody: 2px;
+}
+
+.tinytable {
+width: 100%;
+margin: var(--tt-table-margin);
+border-collapse: collapse;
+background-color: transparent;
+font-family: inherit;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+.tinytable * {
+font-family: inherit;
+}
+
+.tinytable th,
+.tinytable td {
+position: relative;
+padding: var(--tt-cell-padding);
+vertical-align: top;
+}
+.tinytable thead th {
+text-align: left;
+vertical-align: bottom;
+font-weight: var(--tt-font-weight-header);
+border-bottom: none;
+}
+.tinytable thead th[align="center"] {
+text-align: center;
+}
+.tinytable tbody + tbody {
+border-top: var(--tt-border-width-tbody) solid var(--tt-border-color);
+}
+
+
+.tinytable-sm th,
+.tinytable-sm td {
+padding: var(--tt-cell-padding-sm);
+}
+
+.tinytable-bordered {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+.tinytable-bordered th,
+.tinytable-bordered td {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+
+.tinytable-striped tbody tr:nth-of-type(odd) {
+background-color: var(--tt-striped-bg);
+}
+
+.tinytable-hover tbody tr:hover {
+background-color: var(--tt-hover-bg);
+}
+
+.tinytable-responsive {
+width: 100%;
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"] {
+position: relative;
+
+--border-top: 0;
+--border-right: 0;
+--border-bottom: 0;
+--border-left: 0;
+
+--line-color-top: currentColor;
+--line-color-right: currentColor;
+--line-color-bottom: currentColor;
+--line-color-left: currentColor;
+
+--line-width-top: 0.1em;
+--line-width-right: 0.1em;
+--line-width-bottom: 0.1em;
+--line-width-left: 0.1em;
+
+--trim-top-left: 0%;
+--trim-top-right: 0%;
+--trim-right-top: 0%;
+--trim-right-bottom: 0%;
+--trim-bottom-left: 0%;
+--trim-bottom-right: 0%;
+--trim-left-top: 0%;
+--trim-left-bottom: 0%;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::before {
+content: "";
+position: absolute;
+top: var(--trim-top-left, var(--trim-top-right, 0));
+left: var(--trim-left-top, 0);
+right: var(--trim-right-top, 0);
+bottom: 0;
+pointer-events: none;
+z-index: 1;
+border-top: calc(var(--border-top) * var(--line-width-top)) solid var(--line-color-top);
+border-right: calc(var(--border-right) * var(--line-width-right)) solid var(--line-color-right);
+border-left: calc(var(--border-left) * var(--line-width-left)) solid var(--line-color-left);
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::after {
+content: "";
+position: absolute;
+left: var(--trim-bottom-left, 0);
+right: var(--trim-bottom-right, 0);
+bottom: var(--trim-left-bottom, var(--trim-right-bottom, 0));
+height: calc(var(--border-bottom) * var(--line-width-bottom));
+background: var(--line-color-bottom);
+pointer-events: none;
+z-index: 2;
+}
+
+.tinytable-container {
+padding: 10px;
+overflow-x: auto;
+overflow-y: auto;
+width: auto;
+height: auto;
+}
+
+.tinytable caption {
+padding: var(--tt-caption-padding);
+
+caption-side: top;
+font-size: 1rem;
+text-align: left;
+}
+
+.tinytable tfoot tr:first-child td {
+padding-top: var(--tt-footnote-first-padding-top);
+}
+.tinytable tfoot td {
+padding: var(--tt-footnote-padding);
+font-size: var(--tt-font-size-footnote);
+line-height: 1.25;
+background-color: transparent;
+}
+
+.tinytable tfoot tr + tr td {
+padding-top: var(--tt-footnote-gap);
+}
+
+.tinytable tfoot sup {
+font-size: var(--tt-font-size-sup);
+line-height: 0;
+vertical-align: text-top;
+}
+
+.tinytable tfoot tr:nth-child(n+2) td {
+line-height: 1.2;
+}
+</style>
     <style>
 
-.table td.tinytable_css_7sqg9t7csnsdr8qu5yks, .table th.tinytable_css_7sqg9t7csnsdr8qu5yks { border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_wqz39pwx40e1122k7mg8, .table th.tinytable_css_wqz39pwx40e1122k7mg8 { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+#tinytable_q3g38sgosaxfzk4ropui td.tinytable_css_98qyo6k71ty4ylgh24qf, #tinytable_q3g38sgosaxfzk4ropui th.tinytable_css_98qyo6k71ty4ylgh24qf { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
+#tinytable_q3g38sgosaxfzk4ropui td.tinytable_css_vej14rssi77vgj0amq47, #tinytable_q3g38sgosaxfzk4ropui th.tinytable_css_vej14rssi77vgj0amq47 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
 </style>
     <div class="container">
-      <table class="table table-borderless" id="tinytable_9qqmlii27bp5rdyen734" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
-        <thead>
+      <table class="tinytable" id="tinytable_q3g38sgosaxfzk4ropui" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
         
+        <thead>
               <tr>
-                <th scope="col" data-row="0" data-col="0">country</th>
-                <th scope="col" data-row="0" data-col="1">average</th>
-                <th scope="col" data-row="0" data-col="2">sd</th>
-                <th scope="col" data-row="0" data-col="3">median</th>
+                <th scope="col" data-row="0" data-col="1">country</th>
+                <th scope="col" data-row="0" data-col="2">average</th>
+                <th scope="col" data-row="0" data-col="3">sd</th>
+                <th scope="col" data-row="0" data-col="4">median</th>
               </tr>
         </thead>
         
         <tbody>
                 <tr>
-                  <td data-row="1" data-col="0">ARM</td>
-                  <td data-row="1" data-col="1">4.177194</td>
-                  <td data-row="1" data-col="2">3.409121</td>
-                  <td data-row="1" data-col="3">4</td>
+                  <td data-row="1" data-col="1">ARM</td>
+                  <td data-row="1" data-col="2">4.177194</td>
+                  <td data-row="1" data-col="3">3.409121</td>
+                  <td data-row="1" data-col="4">4</td>
                 </tr>
                 <tr>
-                  <td data-row="2" data-col="0">KAZ</td>
-                  <td data-row="2" data-col="1">4.910256</td>
-                  <td data-row="2" data-col="2">2.808218</td>
-                  <td data-row="2" data-col="3">5</td>
+                  <td data-row="2" data-col="1">KAZ</td>
+                  <td data-row="2" data-col="2">4.910256</td>
+                  <td data-row="2" data-col="3">2.808218</td>
+                  <td data-row="2" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="3" data-col="0">KGZ</td>
-                  <td data-row="3" data-col="1">5.107383</td>
-                  <td data-row="3" data-col="2">3.916236</td>
-                  <td data-row="3" data-col="3">5</td>
+                  <td data-row="3" data-col="1">KGZ</td>
+                  <td data-row="3" data-col="2">5.107383</td>
+                  <td data-row="3" data-col="3">3.916236</td>
+                  <td data-row="3" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="4" data-col="0">RUS</td>
-                  <td data-row="4" data-col="1">4.393635</td>
-                  <td data-row="4" data-col="2">2.722294</td>
-                  <td data-row="4" data-col="3">5</td>
+                  <td data-row="4" data-col="1">RUS</td>
+                  <td data-row="4" data-col="2">4.393635</td>
+                  <td data-row="4" data-col="3">2.722294</td>
+                  <td data-row="4" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="5" data-col="0">TJK</td>
-                  <td data-row="5" data-col="1">5.359167</td>
-                  <td data-row="5" data-col="2">2.838171</td>
-                  <td data-row="5" data-col="3">5</td>
+                  <td data-row="5" data-col="1">TJK</td>
+                  <td data-row="5" data-col="2">5.359167</td>
+                  <td data-row="5" data-col="3">2.838171</td>
+                  <td data-row="5" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="6" data-col="0">UKR</td>
-                  <td data-row="6" data-col="1">4.429032</td>
-                  <td data-row="6" data-col="2">2.684628</td>
-                  <td data-row="6" data-col="3">5</td>
+                  <td data-row="6" data-col="1">UKR</td>
+                  <td data-row="6" data-col="2">4.429032</td>
+                  <td data-row="6" data-col="3">2.684628</td>
+                  <td data-row="6" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="7" data-col="0">UZB</td>
-                  <td data-row="7" data-col="1">6.022277</td>
-                  <td data-row="7" data-col="2">3.221572</td>
-                  <td data-row="7" data-col="3">6</td>
+                  <td data-row="7" data-col="1">UZB</td>
+                  <td data-row="7" data-col="2">6.022277</td>
+                  <td data-row="7" data-col="3">3.221572</td>
+                  <td data-row="7" data-col="4">6</td>
                 </tr>
         </tbody>
       </table>
@@ -5155,124 +5538,507 @@ Review
 <div class="cell-output-display">
 <!-- preamble start -->
 
-    <script>
+    <script>// TinyTable JavaScript Framework
+// Function factory for creating table-specific operations
+window.TinyTable = {
+  // Helper to create Tabulator instance with Luxon dependency
+  createTabulator: function(elementId, config) {
+    const { DateTime } = window.luxon || {};
+    return new Tabulator(elementId, {
+      dependencies: { DateTime },
+      ...config
+    });
+  },
 
-      function styleCell_k3ld5e5vn0xhrrltypv6(i, j, css_id) {
-          var table = document.getElementById("tinytable_k3ld5e5vn0xhrrltypv6");
-          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
-          if (cell) {
-              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
-              cell.classList.add(css_id);
-          } else {
-              console.warn(`Cell at (${i}, ${j}) not found.`);
-          }
+  createTableFunctions: function (tableId) {
+    const spans = []; // {top, left, rowspan, colspan}
+
+    function resolveToAnchor(i, j) {
+      // find if (i,j) is inside any span; return that span's anchor if so
+      for (const s of spans) {
+        if (
+          i >= s.top && i < s.top + s.rowspan &&
+          j >= s.left && j < s.left + s.colspan
+        ) {
+          return { i: s.top, j: s.left };
+        }
       }
-      function spanCell_k3ld5e5vn0xhrrltypv6(i, j, rowspan, colspan) {
-        var table = document.getElementById("tinytable_k3ld5e5vn0xhrrltypv6");
+      return { i, j };
+    }
+
+    return {
+      styleCell: function (i, j, css_id) {
+        // normalize possible string indices
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
+        const { i: ai, j: aj } = resolveToAnchor(i, j);
+        const cell = table.querySelector(`[data-row="${ai}"][data-col="${aj}"]`);
+        if (!cell) return; // silently skip if not found (e.g., removed)
+        cell.classList.add(css_id);
+      },
+
+      spanCell: function (i, j, rowspan, colspan) {
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
         const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
         if (!targetCell) {
           console.warn(`Cell at (${i}, ${j}) not found.`);
+          return;
         }
 
-        // Get all cells that need to be removed
+        // record span so future styleCell calls map to the anchor
+        spans.push({ top: i, left: j, rowspan, colspan });
+
+        // remove covered cells (except anchor)
         const cellsToRemove = [];
         for (let r = 0; r < rowspan; r++) {
           for (let c = 0; c < colspan; c++) {
-            if (r === 0 && c === 0) continue; // Skip the target cell
+            if (r === 0 && c === 0) continue;
             const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
-            if (cell) {
-              cellsToRemove.push(cell);
-            }
+            if (cell) cellsToRemove.push(cell);
           }
         }
-
-        // Remove all cells
         cellsToRemove.forEach(cell => cell.remove());
 
-        // Set rowspan and colspan of the target cell if it exists
-        if (targetCell) {
-          targetCell.rowSpan = rowspan;
-          targetCell.colSpan = colspan;
-        }
+        // set HTML attributes for clarity/serialization
+        targetCell.setAttribute('rowspan', rowspan);
+        targetCell.setAttribute('colspan', colspan);
       }
+    };
+  }
+};
+
+// =============================================================================
+// TABULATOR CUSTOM FORMATTERS (revised)
+// =============================================================================
+
+// SVG sparkline
+function tinytable_sparkline(cell, p = {}) {
+  let values = cell.getValue() ?? [];
+  if (!Array.isArray(values)) values = [values];
+  // coerce to finite numbers & strip NaNs
+  values = values.map(Number).filter(Number.isFinite);
+  const n = values.length;
+  if (n === 0) return "";
+
+  const w = p.width ?? 120, h = p.height ?? 30, pad = p.pad ?? 2;
+  const color = p.color ?? "currentColor", sw = p.strokeWidth ?? 1.5;
+  const fill = p.fillArea ?? false;
+  const showDots = p.showDots ?? false;
+  const dotR = p.dotRadius ?? 1.75;
+  const ariaLabel = p.ariaLabel ?? `sparkline with ${n} points`;
+
+  // single pass for min/max
+  let min = Infinity, max = -Infinity;
+  for (let v of values) { if (v < min) min = v; if (v > max) max = v; }
+  const span = (max - min) || 1;
+
+  const x = i => pad + (i * (w - 2 * pad)) / Math.max(n - 1, 1);
+  const y = v => h - pad - ((v - min) * (h - 2 * pad)) / span;
+
+  let d = `M ${x(0)},${y(values[0])}`;
+  for (let i = 1; i < n; i++) d += ` L ${x(i)},${y(values[i])}`;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", ariaLabel);
+
+  const path = document.createElementNS(NS, "path");
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", sw);
+  path.setAttribute("vector-effect", "non-scaling-stroke");
+
+  if (fill) {
+    const area = document.createElementNS(NS, "path");
+    area.setAttribute("d", d + ` L ${x(n - 1)},${h - pad} L ${x(0)},${h - pad} Z`);
+    area.setAttribute("fill", color);
+    area.setAttribute("fill-opacity", p.fillOpacity ?? 0.25);
+    svg.appendChild(area);
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  } else {
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  }
+  svg.appendChild(path);
+
+  if (showDots) {
+    const dot = (i) => {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", x(i));
+      c.setAttribute("cy", y(values[i]));
+      c.setAttribute("r", dotR);
+      c.setAttribute("fill", color);
+      return c;
+    };
+    if (p.dots === "end") svg.appendChild(dot(n - 1));
+    else if (p.dots === "minmax") {
+      const iMin = values.indexOf(min), iMax = values.indexOf(max);
+      svg.appendChild(dot(iMin)); svg.appendChild(dot(iMax));
+    } else if (p.dots === true) {
+      for (let i = 0; i < n; i++) svg.appendChild(dot(i));
+    }
+  }
+
+  if (p.title) {
+    const title = document.createElementNS(NS, "title");
+    title.textContent = p.title;
+    svg.appendChild(title);
+  }
+
+  return svg;
+}
+
+// Canvas histogram
+function tinytable_histogram(cell, p = {}) {
+  let data = cell.getValue() ?? [];
+  if (!Array.isArray(data)) data = [data];
+  data = data.map(Number).filter(Number.isFinite);
+  const n = data.length;
+  if (n === 0) return "";
+
+  const cssWidth = p.width ?? 120;
+  const cssHeight = p.height ?? 30;
+  const color = p.color ?? "currentColor";
+  const gap = p.gap ?? 1;         // px gap between bars
+  const pad = p.pad ?? 0;         // inner padding
+  const ariaLabel = p.ariaLabel ?? `histogram with ${n} observations`;
+
+  // robust bins: Sturges as default; allow override
+  const k = Math.max(1, Math.min(64, p.bins ?? Math.ceil(Math.log2(n) + 1)));
+
+  // stats
+  let min = Infinity, max = -Infinity;
+  for (let v of data) { if (v < min) min = v; if (v > max) max = v; }
+
+  // zero-range safeguard -> single centered bar
+  const range = max - min;
+  const binWidth = range > 0 ? range / k : 1;
+
+  const bins = new Array(k).fill(0);
+  if (range === 0) {
+    // put all mass in the middle bin
+    bins[Math.floor(k / 2)] = n;
+  } else {
+    for (let v of data) {
+      let idx = Math.floor((v - min) / binWidth);
+      if (idx >= k) idx = k - 1; // clamp max edge
+      bins[idx]++;
+    }
+  }
+  const maxCount = Math.max(...bins, 1);
+
+  // HiDPI / Retina crispness
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", ariaLabel);
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  ctx.fillStyle = color;
+
+  const innerW = cssWidth - pad * 2;
+  const innerH = cssHeight - pad * 2;
+  const barW = innerW / k;
+
+  for (let i = 0; i < k; i++) {
+    const h = (bins[i] / maxCount) * innerH;
+    const x = pad + i * barW;
+    const y = cssHeight - pad - h;
+    // 0.5 translate helps crisp vertical edges on some displays
+    ctx.fillRect(Math.round(x) + 0.5, Math.floor(y), Math.max(0, barW - gap), Math.ceil(h));
+  }
+
+  if (p.title) canvas.title = p.title;
+  return canvas;
+}
+
+// Unified sorter that uses hidden rank field
+function tinytable_rank_sorter(a, b, aRow, bRow, column, dir, sorterParams) {
+  const rankField = sorterParams.rankField;
+  const aVal = aRow.getData()[rankField] || 0;
+  const bVal = bRow.getData()[rankField] || 0;
+  return aVal - bVal;
+}
+</script>
+
+    <script>
+      // Create table-specific functions using external factory
+      const tableFns_gw9ua8g0xooo3f1u6l2r = TinyTable.createTableFunctions("tinytable_gw9ua8g0xooo3f1u6l2r");
       // tinytable span after
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '7', j: 0 }, { i: '7', j: 1 }, { i: '7', j: 2 }, { i: '7', j: 3 },  ], css_id: 'tinytable_css_uxd471nsfg50qufaj9hv',}, 
-          { positions: [ { i: '2', j: 0 }, { i: '5', j: 0 }, { i: '5', j: 1 }, { i: '2', j: 1 }, { i: '6', j: 0 }, { i: '2', j: 2 }, { i: '3', j: 0 }, { i: '5', j: 2 }, { i: '3', j: 1 }, { i: '5', j: 3 }, { i: '6', j: 1 }, { i: '2', j: 3 }, { i: '6', j: 2 }, { i: '3', j: 2 }, { i: '3', j: 3 }, { i: '6', j: 3 },  ], css_id: 'tinytable_css_xkum2o6drn4n7mmdl6m3',}, 
-          { positions: [ { i: '0', j: 0 }, { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 },  ], css_id: 'tinytable_css_n11ujt3yhwgywje3i0uw',}, 
+          { positions: [ { i: '2', j: 1 }, { i: '3', j: 1 }, { i: '5', j: 1 }, { i: '6', j: 1 }, { i: '2', j: 2 }, { i: '3', j: 2 }, { i: '5', j: 2 }, { i: '6', j: 2 }, { i: '2', j: 3 }, { i: '3', j: 3 }, { i: '5', j: 3 }, { i: '6', j: 3 }, { i: '2', j: 4 }, { i: '3', j: 4 }, { i: '5', j: 4 }, { i: '6', j: 4 } ], css_id: 'tinytable_css_fzowl28dbllqzhrw4qvv',}, 
+          { positions: [ { i: '7', j: 1 }, { i: '7', j: 2 }, { i: '7', j: 3 }, { i: '7', j: 4 } ], css_id: 'tinytable_css_30qxzj078ssveonv91f4',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 } ], css_id: 'tinytable_css_pudxrgipsildr9qqd9bt',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  styleCell_k3ld5e5vn0xhrrltypv6(cell.i, cell.j, group.css_id);
+                  tableFns_gw9ua8g0xooo3f1u6l2r.styleCell(cell.i, cell.j, group.css_id);
               });
           });
       });
     </script>
 
+    <style type="text/css">
+
+
+.tinytable {
+
+--tt-border-color: black;
+--tt-header-border-color: black;
+--tt-striped-bg: rgba(0, 0, 0, .05);
+--tt-hover-bg: rgba(0, 0, 0, .075);
+--tt-caption-color: #6c757d;
+--tt-footnote-color: #6c757d;
+
+--tt-cell-padding: .5rem;
+--tt-cell-padding-sm: .25rem;
+--tt-table-margin: .5rem 0;
+--tt-caption-padding: .5rem 0;
+--tt-footnote-padding: .2rem .5rem;
+--tt-footnote-first-padding-top: .5rem;
+--tt-footnote-gap: .1rem;
+
+--tt-font-size-footnote: 0.875rem;
+--tt-font-size-sup: 0.75em;
+--tt-line-height-footnote: 1.25;
+--tt-line-height-footnote-tight: 1.2;
+--tt-font-weight-header: normal;
+
+--tt-border-width: 1px;
+--tt-border-width-tbody: 2px;
+}
+
+.tinytable {
+width: 100%;
+margin: var(--tt-table-margin);
+border-collapse: collapse;
+background-color: transparent;
+font-family: inherit;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+.tinytable * {
+font-family: inherit;
+}
+
+.tinytable th,
+.tinytable td {
+position: relative;
+padding: var(--tt-cell-padding);
+vertical-align: top;
+}
+.tinytable thead th {
+text-align: left;
+vertical-align: bottom;
+font-weight: var(--tt-font-weight-header);
+border-bottom: none;
+}
+.tinytable thead th[align="center"] {
+text-align: center;
+}
+.tinytable tbody + tbody {
+border-top: var(--tt-border-width-tbody) solid var(--tt-border-color);
+}
+
+
+.tinytable-sm th,
+.tinytable-sm td {
+padding: var(--tt-cell-padding-sm);
+}
+
+.tinytable-bordered {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+.tinytable-bordered th,
+.tinytable-bordered td {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+
+.tinytable-striped tbody tr:nth-of-type(odd) {
+background-color: var(--tt-striped-bg);
+}
+
+.tinytable-hover tbody tr:hover {
+background-color: var(--tt-hover-bg);
+}
+
+.tinytable-responsive {
+width: 100%;
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"] {
+position: relative;
+
+--border-top: 0;
+--border-right: 0;
+--border-bottom: 0;
+--border-left: 0;
+
+--line-color-top: currentColor;
+--line-color-right: currentColor;
+--line-color-bottom: currentColor;
+--line-color-left: currentColor;
+
+--line-width-top: 0.1em;
+--line-width-right: 0.1em;
+--line-width-bottom: 0.1em;
+--line-width-left: 0.1em;
+
+--trim-top-left: 0%;
+--trim-top-right: 0%;
+--trim-right-top: 0%;
+--trim-right-bottom: 0%;
+--trim-bottom-left: 0%;
+--trim-bottom-right: 0%;
+--trim-left-top: 0%;
+--trim-left-bottom: 0%;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::before {
+content: "";
+position: absolute;
+top: var(--trim-top-left, var(--trim-top-right, 0));
+left: var(--trim-left-top, 0);
+right: var(--trim-right-top, 0);
+bottom: 0;
+pointer-events: none;
+z-index: 1;
+border-top: calc(var(--border-top) * var(--line-width-top)) solid var(--line-color-top);
+border-right: calc(var(--border-right) * var(--line-width-right)) solid var(--line-color-right);
+border-left: calc(var(--border-left) * var(--line-width-left)) solid var(--line-color-left);
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::after {
+content: "";
+position: absolute;
+left: var(--trim-bottom-left, 0);
+right: var(--trim-bottom-right, 0);
+bottom: var(--trim-left-bottom, var(--trim-right-bottom, 0));
+height: calc(var(--border-bottom) * var(--line-width-bottom));
+background: var(--line-color-bottom);
+pointer-events: none;
+z-index: 2;
+}
+
+.tinytable-container {
+padding: 10px;
+overflow-x: auto;
+overflow-y: auto;
+width: auto;
+height: auto;
+}
+
+.tinytable caption {
+padding: var(--tt-caption-padding);
+
+caption-side: top;
+font-size: 1rem;
+text-align: left;
+}
+
+.tinytable tfoot tr:first-child td {
+padding-top: var(--tt-footnote-first-padding-top);
+}
+.tinytable tfoot td {
+padding: var(--tt-footnote-padding);
+font-size: var(--tt-font-size-footnote);
+line-height: 1.25;
+background-color: transparent;
+}
+
+.tinytable tfoot tr + tr td {
+padding-top: var(--tt-footnote-gap);
+}
+
+.tinytable tfoot sup {
+font-size: var(--tt-font-size-sup);
+line-height: 0;
+vertical-align: text-top;
+}
+
+.tinytable tfoot tr:nth-child(n+2) td {
+line-height: 1.2;
+}
+</style>
     <style>
 
-.table td.tinytable_css_uxd471nsfg50qufaj9hv, .table th.tinytable_css_uxd471nsfg50qufaj9hv { border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_xkum2o6drn4n7mmdl6m3, .table th.tinytable_css_xkum2o6drn4n7mmdl6m3 { font-weight: bold; color: white; background-color: #008080; }
-.table td.tinytable_css_n11ujt3yhwgywje3i0uw, .table th.tinytable_css_n11ujt3yhwgywje3i0uw { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+#tinytable_gw9ua8g0xooo3f1u6l2r td.tinytable_css_fzowl28dbllqzhrw4qvv, #tinytable_gw9ua8g0xooo3f1u6l2r th.tinytable_css_fzowl28dbllqzhrw4qvv { font-weight: bold; color: white; background-color: #008080 }
+#tinytable_gw9ua8g0xooo3f1u6l2r td.tinytable_css_30qxzj078ssveonv91f4, #tinytable_gw9ua8g0xooo3f1u6l2r th.tinytable_css_30qxzj078ssveonv91f4 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
+#tinytable_gw9ua8g0xooo3f1u6l2r td.tinytable_css_pudxrgipsildr9qqd9bt, #tinytable_gw9ua8g0xooo3f1u6l2r th.tinytable_css_pudxrgipsildr9qqd9bt { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
 </style>
     <div class="container">
-      <table class="table table-borderless" id="tinytable_k3ld5e5vn0xhrrltypv6" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+      <table class="tinytable" id="tinytable_gw9ua8g0xooo3f1u6l2r" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+        <caption>Descriptive Statistics for Post Soviet Region</caption>
         <thead>
-        </thead><caption>Descriptive Statistics for Post Soviet Region</caption>
-              <tbody><tr>
-                <th scope="col" data-row="0" data-col="0">Country</th>
-                <th scope="col" data-row="0" data-col="1">Average</th>
-                <th scope="col" data-row="0" data-col="2">Sd</th>
-                <th scope="col" data-row="0" data-col="3">Median</th>
+              <tr>
+                <th scope="col" data-row="0" data-col="1">Country</th>
+                <th scope="col" data-row="0" data-col="2">Average</th>
+                <th scope="col" data-row="0" data-col="3">Sd</th>
+                <th scope="col" data-row="0" data-col="4">Median</th>
               </tr>
+        </thead>
         
-        
-        </tbody><tbody>
+        <tbody>
                 <tr>
-                  <td data-row="1" data-col="0">ARM</td>
-                  <td data-row="1" data-col="1">4.2</td>
-                  <td data-row="1" data-col="2">3.4</td>
-                  <td data-row="1" data-col="3">4</td>
+                  <td data-row="1" data-col="1">ARM</td>
+                  <td data-row="1" data-col="2">4.2</td>
+                  <td data-row="1" data-col="3">3.4</td>
+                  <td data-row="1" data-col="4">4</td>
                 </tr>
                 <tr>
-                  <td data-row="2" data-col="0">KAZ</td>
-                  <td data-row="2" data-col="1">4.9</td>
-                  <td data-row="2" data-col="2">2.8</td>
-                  <td data-row="2" data-col="3">5</td>
+                  <td data-row="2" data-col="1">KAZ</td>
+                  <td data-row="2" data-col="2">4.9</td>
+                  <td data-row="2" data-col="3">2.8</td>
+                  <td data-row="2" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="3" data-col="0">KGZ</td>
-                  <td data-row="3" data-col="1">5.1</td>
-                  <td data-row="3" data-col="2">3.9</td>
-                  <td data-row="3" data-col="3">5</td>
+                  <td data-row="3" data-col="1">KGZ</td>
+                  <td data-row="3" data-col="2">5.1</td>
+                  <td data-row="3" data-col="3">3.9</td>
+                  <td data-row="3" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="4" data-col="0">RUS</td>
-                  <td data-row="4" data-col="1">4.4</td>
-                  <td data-row="4" data-col="2">2.7</td>
-                  <td data-row="4" data-col="3">5</td>
+                  <td data-row="4" data-col="1">RUS</td>
+                  <td data-row="4" data-col="2">4.4</td>
+                  <td data-row="4" data-col="3">2.7</td>
+                  <td data-row="4" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="5" data-col="0">TJK</td>
-                  <td data-row="5" data-col="1">5.4</td>
-                  <td data-row="5" data-col="2">2.8</td>
-                  <td data-row="5" data-col="3">5</td>
+                  <td data-row="5" data-col="1">TJK</td>
+                  <td data-row="5" data-col="2">5.4</td>
+                  <td data-row="5" data-col="3">2.8</td>
+                  <td data-row="5" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="6" data-col="0">UKR</td>
-                  <td data-row="6" data-col="1">4.4</td>
-                  <td data-row="6" data-col="2">2.7</td>
-                  <td data-row="6" data-col="3">5</td>
+                  <td data-row="6" data-col="1">UKR</td>
+                  <td data-row="6" data-col="2">4.4</td>
+                  <td data-row="6" data-col="3">2.7</td>
+                  <td data-row="6" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="7" data-col="0">UZB</td>
-                  <td data-row="7" data-col="1">6</td>
-                  <td data-row="7" data-col="2">3.2</td>
-                  <td data-row="7" data-col="3">6</td>
+                  <td data-row="7" data-col="1">UZB</td>
+                  <td data-row="7" data-col="2">6</td>
+                  <td data-row="7" data-col="3">3.2</td>
+                  <td data-row="7" data-col="4">6</td>
                 </tr>
         </tbody>
       </table>
@@ -5308,164 +6074,549 @@ Review
 <div class="cell-output-display">
 <!-- preamble start -->
 
-    <script>
+    <script>// TinyTable JavaScript Framework
+// Function factory for creating table-specific operations
+window.TinyTable = {
+  // Helper to create Tabulator instance with Luxon dependency
+  createTabulator: function(elementId, config) {
+    const { DateTime } = window.luxon || {};
+    return new Tabulator(elementId, {
+      dependencies: { DateTime },
+      ...config
+    });
+  },
 
-      function styleCell_czujn30fx9cw8y53p4a8(i, j, css_id) {
-          var table = document.getElementById("tinytable_czujn30fx9cw8y53p4a8");
-          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
-          if (cell) {
-              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
-              cell.classList.add(css_id);
-          } else {
-              console.warn(`Cell at (${i}, ${j}) not found.`);
-          }
+  createTableFunctions: function (tableId) {
+    const spans = []; // {top, left, rowspan, colspan}
+
+    function resolveToAnchor(i, j) {
+      // find if (i,j) is inside any span; return that span's anchor if so
+      for (const s of spans) {
+        if (
+          i >= s.top && i < s.top + s.rowspan &&
+          j >= s.left && j < s.left + s.colspan
+        ) {
+          return { i: s.top, j: s.left };
+        }
       }
-      function spanCell_czujn30fx9cw8y53p4a8(i, j, rowspan, colspan) {
-        var table = document.getElementById("tinytable_czujn30fx9cw8y53p4a8");
+      return { i, j };
+    }
+
+    return {
+      styleCell: function (i, j, css_id) {
+        // normalize possible string indices
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
+        const { i: ai, j: aj } = resolveToAnchor(i, j);
+        const cell = table.querySelector(`[data-row="${ai}"][data-col="${aj}"]`);
+        if (!cell) return; // silently skip if not found (e.g., removed)
+        cell.classList.add(css_id);
+      },
+
+      spanCell: function (i, j, rowspan, colspan) {
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
         const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
         if (!targetCell) {
           console.warn(`Cell at (${i}, ${j}) not found.`);
+          return;
         }
 
-        // Get all cells that need to be removed
+        // record span so future styleCell calls map to the anchor
+        spans.push({ top: i, left: j, rowspan, colspan });
+
+        // remove covered cells (except anchor)
         const cellsToRemove = [];
         for (let r = 0; r < rowspan; r++) {
           for (let c = 0; c < colspan; c++) {
-            if (r === 0 && c === 0) continue; // Skip the target cell
+            if (r === 0 && c === 0) continue;
             const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
-            if (cell) {
-              cellsToRemove.push(cell);
-            }
+            if (cell) cellsToRemove.push(cell);
           }
         }
-
-        // Remove all cells
         cellsToRemove.forEach(cell => cell.remove());
 
-        // Set rowspan and colspan of the target cell if it exists
-        if (targetCell) {
-          targetCell.rowSpan = rowspan;
-          targetCell.colSpan = colspan;
-        }
+        // set HTML attributes for clarity/serialization
+        targetCell.setAttribute('rowspan', rowspan);
+        targetCell.setAttribute('colspan', colspan);
       }
+    };
+  }
+};
+
+// =============================================================================
+// TABULATOR CUSTOM FORMATTERS (revised)
+// =============================================================================
+
+// SVG sparkline
+function tinytable_sparkline(cell, p = {}) {
+  let values = cell.getValue() ?? [];
+  if (!Array.isArray(values)) values = [values];
+  // coerce to finite numbers & strip NaNs
+  values = values.map(Number).filter(Number.isFinite);
+  const n = values.length;
+  if (n === 0) return "";
+
+  const w = p.width ?? 120, h = p.height ?? 30, pad = p.pad ?? 2;
+  const color = p.color ?? "currentColor", sw = p.strokeWidth ?? 1.5;
+  const fill = p.fillArea ?? false;
+  const showDots = p.showDots ?? false;
+  const dotR = p.dotRadius ?? 1.75;
+  const ariaLabel = p.ariaLabel ?? `sparkline with ${n} points`;
+
+  // single pass for min/max
+  let min = Infinity, max = -Infinity;
+  for (let v of values) { if (v < min) min = v; if (v > max) max = v; }
+  const span = (max - min) || 1;
+
+  const x = i => pad + (i * (w - 2 * pad)) / Math.max(n - 1, 1);
+  const y = v => h - pad - ((v - min) * (h - 2 * pad)) / span;
+
+  let d = `M ${x(0)},${y(values[0])}`;
+  for (let i = 1; i < n; i++) d += ` L ${x(i)},${y(values[i])}`;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", ariaLabel);
+
+  const path = document.createElementNS(NS, "path");
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", sw);
+  path.setAttribute("vector-effect", "non-scaling-stroke");
+
+  if (fill) {
+    const area = document.createElementNS(NS, "path");
+    area.setAttribute("d", d + ` L ${x(n - 1)},${h - pad} L ${x(0)},${h - pad} Z`);
+    area.setAttribute("fill", color);
+    area.setAttribute("fill-opacity", p.fillOpacity ?? 0.25);
+    svg.appendChild(area);
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  } else {
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  }
+  svg.appendChild(path);
+
+  if (showDots) {
+    const dot = (i) => {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", x(i));
+      c.setAttribute("cy", y(values[i]));
+      c.setAttribute("r", dotR);
+      c.setAttribute("fill", color);
+      return c;
+    };
+    if (p.dots === "end") svg.appendChild(dot(n - 1));
+    else if (p.dots === "minmax") {
+      const iMin = values.indexOf(min), iMax = values.indexOf(max);
+      svg.appendChild(dot(iMin)); svg.appendChild(dot(iMax));
+    } else if (p.dots === true) {
+      for (let i = 0; i < n; i++) svg.appendChild(dot(i));
+    }
+  }
+
+  if (p.title) {
+    const title = document.createElementNS(NS, "title");
+    title.textContent = p.title;
+    svg.appendChild(title);
+  }
+
+  return svg;
+}
+
+// Canvas histogram
+function tinytable_histogram(cell, p = {}) {
+  let data = cell.getValue() ?? [];
+  if (!Array.isArray(data)) data = [data];
+  data = data.map(Number).filter(Number.isFinite);
+  const n = data.length;
+  if (n === 0) return "";
+
+  const cssWidth = p.width ?? 120;
+  const cssHeight = p.height ?? 30;
+  const color = p.color ?? "currentColor";
+  const gap = p.gap ?? 1;         // px gap between bars
+  const pad = p.pad ?? 0;         // inner padding
+  const ariaLabel = p.ariaLabel ?? `histogram with ${n} observations`;
+
+  // robust bins: Sturges as default; allow override
+  const k = Math.max(1, Math.min(64, p.bins ?? Math.ceil(Math.log2(n) + 1)));
+
+  // stats
+  let min = Infinity, max = -Infinity;
+  for (let v of data) { if (v < min) min = v; if (v > max) max = v; }
+
+  // zero-range safeguard -> single centered bar
+  const range = max - min;
+  const binWidth = range > 0 ? range / k : 1;
+
+  const bins = new Array(k).fill(0);
+  if (range === 0) {
+    // put all mass in the middle bin
+    bins[Math.floor(k / 2)] = n;
+  } else {
+    for (let v of data) {
+      let idx = Math.floor((v - min) / binWidth);
+      if (idx >= k) idx = k - 1; // clamp max edge
+      bins[idx]++;
+    }
+  }
+  const maxCount = Math.max(...bins, 1);
+
+  // HiDPI / Retina crispness
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", ariaLabel);
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  ctx.fillStyle = color;
+
+  const innerW = cssWidth - pad * 2;
+  const innerH = cssHeight - pad * 2;
+  const barW = innerW / k;
+
+  for (let i = 0; i < k; i++) {
+    const h = (bins[i] / maxCount) * innerH;
+    const x = pad + i * barW;
+    const y = cssHeight - pad - h;
+    // 0.5 translate helps crisp vertical edges on some displays
+    ctx.fillRect(Math.round(x) + 0.5, Math.floor(y), Math.max(0, barW - gap), Math.ceil(h));
+  }
+
+  if (p.title) canvas.title = p.title;
+  return canvas;
+}
+
+// Unified sorter that uses hidden rank field
+function tinytable_rank_sorter(a, b, aRow, bRow, column, dir, sorterParams) {
+  const rankField = sorterParams.rankField;
+  const aVal = aRow.getData()[rankField] || 0;
+  const bVal = bRow.getData()[rankField] || 0;
+  return aVal - bVal;
+}
+</script>
+
+    <script>
+      // Create table-specific functions using external factory
+      const tableFns_imcmqedrr2spul9t3367 = TinyTable.createTableFunctions("tinytable_imcmqedrr2spul9t3367");
       // tinytable span after
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '-1', j: 6 }, { i: '-1', j: 5 }, { i: '-1', j: 4 },  ], css_id: 'tinytable_css_bns33orktq86xn7dy7wj',}, 
-          { positions: [ { i: '7', j: 5 }, { i: '7', j: 2 }, { i: '7', j: 4 }, { i: '7', j: 6 }, { i: '7', j: 1 }, { i: '7', j: 3 },  ], css_id: 'tinytable_css_niq6h4qel1f154wqjlf8',}, 
-          { positions: [ { i: '3', j: 1 }, { i: '2', j: 3 }, { i: '2', j: 1 }, { i: '2', j: 2 }, { i: '3', j: 2 }, { i: '1', j: 1 }, { i: '6', j: 1 }, { i: '6', j: 2 }, { i: '2', j: 4 }, { i: '4', j: 1 }, { i: '1', j: 2 }, { i: '1', j: 3 }, { i: '6', j: 4 }, { i: '3', j: 3 }, { i: '5', j: 2 }, { i: '5', j: 3 }, { i: '6', j: 3 }, { i: '2', j: 5 }, { i: '4', j: 2 }, { i: '4', j: 5 }, { i: '1', j: 4 }, { i: '6', j: 5 }, { i: '3', j: 4 }, { i: '5', j: 1 }, { i: '5', j: 4 }, { i: '1', j: 6 }, { i: '2', j: 6 }, { i: '4', j: 3 }, { i: '4', j: 6 }, { i: '1', j: 5 }, { i: '6', j: 6 }, { i: '3', j: 5 }, { i: '4', j: 4 }, { i: '5', j: 5 }, { i: '5', j: 6 }, { i: '3', j: 6 },  ], css_id: 'tinytable_css_qv227fzskamtfut0v71b',}, 
-          { positions: [ { i: '-1', j: 3 }, { i: '-1', j: 2 }, { i: '-1', j: 1 },  ], css_id: 'tinytable_css_791mrzct4xr8y8hc5gkf',}, 
-          { positions: [ { i: '0', j: 1 }, { i: '0', j: 4 }, { i: '0', j: 6 }, { i: '0', j: 3 }, { i: '0', j: 5 }, { i: '0', j: 2 },  ], css_id: 'tinytable_css_180cjkvxv951rvkozaso',}, 
-          { positions: [ { i: '7', j: 0 },  ], css_id: 'tinytable_css_rkdduxsw3juvwn64j7tt',}, 
-          { positions: [ { i: '-1', j: 0 },  ], css_id: 'tinytable_css_xa3so3ffkg4o5iny0c0i',}, 
-          { positions: [ { i: '0', j: 0 },  ], css_id: 'tinytable_css_gc4f8w52llgckc42q84w',}, 
+          { positions: [ { i: '1', j: 2 }, { i: '2', j: 2 }, { i: '3', j: 2 }, { i: '4', j: 2 }, { i: '5', j: 2 }, { i: '6', j: 2 }, { i: '1', j: 3 }, { i: '2', j: 3 }, { i: '3', j: 3 }, { i: '4', j: 3 }, { i: '5', j: 3 }, { i: '6', j: 3 }, { i: '1', j: 4 }, { i: '2', j: 4 }, { i: '3', j: 4 }, { i: '4', j: 4 }, { i: '5', j: 4 }, { i: '6', j: 4 }, { i: '1', j: 5 }, { i: '2', j: 5 }, { i: '3', j: 5 }, { i: '4', j: 5 }, { i: '5', j: 5 }, { i: '6', j: 5 }, { i: '1', j: 6 }, { i: '2', j: 6 }, { i: '3', j: 6 }, { i: '4', j: 6 }, { i: '5', j: 6 }, { i: '6', j: 6 }, { i: '1', j: 7 }, { i: '2', j: 7 }, { i: '3', j: 7 }, { i: '4', j: 7 }, { i: '5', j: 7 }, { i: '6', j: 7 } ], css_id: 'tinytable_css_zg4cuqiwk0336caxoapq',}, 
+          { positions: [ { i: '7', j: 2 }, { i: '7', j: 3 }, { i: '7', j: 4 }, { i: '7', j: 5 }, { i: '7', j: 6 }, { i: '7', j: 7 } ], css_id: 'tinytable_css_8ishe4qd1vodm1l1skss',}, 
+          { positions: [ { i: '7', j: 1 } ], css_id: 'tinytable_css_zxy0fxywt8m7wq8kq4o1',}, 
+          { positions: [ { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 }, { i: '0', j: 5 }, { i: '0', j: 6 }, { i: '0', j: 7 } ], css_id: 'tinytable_css_syamxe5rscc83gug8pfr',}, 
+          { positions: [ { i: '0', j: 1 } ], css_id: 'tinytable_css_5e9nte5qcg98cc0lx6kp',}, 
+          { positions: [ { i: '-1', j: 7 } ], css_id: 'tinytable_css_8myw72h6axlilha723j4',}, 
+          { positions: [ { i: '-1', j: 3 }, { i: '-1', j: 5 } ], css_id: 'tinytable_css_gb6zoessxq743bzjmgdr',}, 
+          { positions: [ { i: '-1', j: 2 }, { i: '-1', j: 4 }, { i: '-1', j: 6 } ], css_id: 'tinytable_css_ahs1jzbcn2sqhceyppra',}, 
+          { positions: [ { i: '-1', j: 1 } ], css_id: 'tinytable_css_0e79wl5m8ab4nb7z865y',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  styleCell_czujn30fx9cw8y53p4a8(cell.i, cell.j, group.css_id);
+                  tableFns_imcmqedrr2spul9t3367.styleCell(cell.i, cell.j, group.css_id);
               });
           });
       });
     </script>
 
+    <style type="text/css">
+
+
+.tinytable {
+
+--tt-border-color: black;
+--tt-header-border-color: black;
+--tt-striped-bg: rgba(0, 0, 0, .05);
+--tt-hover-bg: rgba(0, 0, 0, .075);
+--tt-caption-color: #6c757d;
+--tt-footnote-color: #6c757d;
+
+--tt-cell-padding: .5rem;
+--tt-cell-padding-sm: .25rem;
+--tt-table-margin: .5rem 0;
+--tt-caption-padding: .5rem 0;
+--tt-footnote-padding: .2rem .5rem;
+--tt-footnote-first-padding-top: .5rem;
+--tt-footnote-gap: .1rem;
+
+--tt-font-size-footnote: 0.875rem;
+--tt-font-size-sup: 0.75em;
+--tt-line-height-footnote: 1.25;
+--tt-line-height-footnote-tight: 1.2;
+--tt-font-weight-header: normal;
+
+--tt-border-width: 1px;
+--tt-border-width-tbody: 2px;
+}
+
+.tinytable {
+width: 100%;
+margin: var(--tt-table-margin);
+border-collapse: collapse;
+background-color: transparent;
+font-family: inherit;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+.tinytable * {
+font-family: inherit;
+}
+
+.tinytable th,
+.tinytable td {
+position: relative;
+padding: var(--tt-cell-padding);
+vertical-align: top;
+}
+.tinytable thead th {
+text-align: left;
+vertical-align: bottom;
+font-weight: var(--tt-font-weight-header);
+border-bottom: none;
+}
+.tinytable thead th[align="center"] {
+text-align: center;
+}
+.tinytable tbody + tbody {
+border-top: var(--tt-border-width-tbody) solid var(--tt-border-color);
+}
+
+
+.tinytable-sm th,
+.tinytable-sm td {
+padding: var(--tt-cell-padding-sm);
+}
+
+.tinytable-bordered {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+.tinytable-bordered th,
+.tinytable-bordered td {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+
+.tinytable-striped tbody tr:nth-of-type(odd) {
+background-color: var(--tt-striped-bg);
+}
+
+.tinytable-hover tbody tr:hover {
+background-color: var(--tt-hover-bg);
+}
+
+.tinytable-responsive {
+width: 100%;
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"] {
+position: relative;
+
+--border-top: 0;
+--border-right: 0;
+--border-bottom: 0;
+--border-left: 0;
+
+--line-color-top: currentColor;
+--line-color-right: currentColor;
+--line-color-bottom: currentColor;
+--line-color-left: currentColor;
+
+--line-width-top: 0.1em;
+--line-width-right: 0.1em;
+--line-width-bottom: 0.1em;
+--line-width-left: 0.1em;
+
+--trim-top-left: 0%;
+--trim-top-right: 0%;
+--trim-right-top: 0%;
+--trim-right-bottom: 0%;
+--trim-bottom-left: 0%;
+--trim-bottom-right: 0%;
+--trim-left-top: 0%;
+--trim-left-bottom: 0%;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::before {
+content: "";
+position: absolute;
+top: var(--trim-top-left, var(--trim-top-right, 0));
+left: var(--trim-left-top, 0);
+right: var(--trim-right-top, 0);
+bottom: 0;
+pointer-events: none;
+z-index: 1;
+border-top: calc(var(--border-top) * var(--line-width-top)) solid var(--line-color-top);
+border-right: calc(var(--border-right) * var(--line-width-right)) solid var(--line-color-right);
+border-left: calc(var(--border-left) * var(--line-width-left)) solid var(--line-color-left);
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::after {
+content: "";
+position: absolute;
+left: var(--trim-bottom-left, 0);
+right: var(--trim-bottom-right, 0);
+bottom: var(--trim-left-bottom, var(--trim-right-bottom, 0));
+height: calc(var(--border-bottom) * var(--line-width-bottom));
+background: var(--line-color-bottom);
+pointer-events: none;
+z-index: 2;
+}
+
+.tinytable-container {
+padding: 10px;
+overflow-x: auto;
+overflow-y: auto;
+width: auto;
+height: auto;
+}
+
+.tinytable caption {
+padding: var(--tt-caption-padding);
+
+caption-side: top;
+font-size: 1rem;
+text-align: left;
+}
+
+.tinytable tfoot tr:first-child td {
+padding-top: var(--tt-footnote-first-padding-top);
+}
+.tinytable tfoot td {
+padding: var(--tt-footnote-padding);
+font-size: var(--tt-font-size-footnote);
+line-height: 1.25;
+background-color: transparent;
+}
+
+.tinytable tfoot tr + tr td {
+padding-top: var(--tt-footnote-gap);
+}
+
+.tinytable tfoot sup {
+font-size: var(--tt-font-size-sup);
+line-height: 0;
+vertical-align: text-top;
+}
+
+.tinytable tfoot tr:nth-child(n+2) td {
+line-height: 1.2;
+}
+</style>
     <style>
 
-.table td.tinytable_css_bns33orktq86xn7dy7wj, .table th.tinytable_css_bns33orktq86xn7dy7wj { text-align: center; border-top: solid #d3d8dc 0.1em; text-align: center; }
-.table td.tinytable_css_niq6h4qel1f154wqjlf8, .table th.tinytable_css_niq6h4qel1f154wqjlf8 { text-align: center; border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_qv227fzskamtfut0v71b, .table th.tinytable_css_qv227fzskamtfut0v71b { text-align: center; }
-.table td.tinytable_css_791mrzct4xr8y8hc5gkf, .table th.tinytable_css_791mrzct4xr8y8hc5gkf { text-align: center; border-top: solid #d3d8dc 0.1em; text-align: center; border-bottom: solid #d3d8dc 0.05em; }
-.table td.tinytable_css_180cjkvxv951rvkozaso, .table th.tinytable_css_180cjkvxv951rvkozaso { text-align: center; border-bottom: solid #d3d8dc 0.05em; }
-.table td.tinytable_css_rkdduxsw3juvwn64j7tt, .table th.tinytable_css_rkdduxsw3juvwn64j7tt { border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_xa3so3ffkg4o5iny0c0i, .table th.tinytable_css_xa3so3ffkg4o5iny0c0i { border-top: solid #d3d8dc 0.1em; text-align: center; }
-.table td.tinytable_css_gc4f8w52llgckc42q84w, .table th.tinytable_css_gc4f8w52llgckc42q84w { border-bottom: solid #d3d8dc 0.05em; }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_zg4cuqiwk0336caxoapq, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_zg4cuqiwk0336caxoapq { text-align: center }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_8ishe4qd1vodm1l1skss, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_8ishe4qd1vodm1l1skss { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_zxy0fxywt8m7wq8kq4o1, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_zxy0fxywt8m7wq8kq4o1 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_syamxe5rscc83gug8pfr, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_syamxe5rscc83gug8pfr { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_5e9nte5qcg98cc0lx6kp, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_5e9nte5qcg98cc0lx6kp { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_8myw72h6axlilha723j4, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_8myw72h6axlilha723j4 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_gb6zoessxq743bzjmgdr, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_gb6zoessxq743bzjmgdr { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 3%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_ahs1jzbcn2sqhceyppra, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_ahs1jzbcn2sqhceyppra { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 3%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_imcmqedrr2spul9t3367 td.tinytable_css_0e79wl5m8ab4nb7z865y, #tinytable_imcmqedrr2spul9t3367 th.tinytable_css_0e79wl5m8ab4nb7z865y { position: relative; --border-bottom: 0; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
 </style>
     <div class="container">
-      <table class="table table-borderless" id="tinytable_czujn30fx9cw8y53p4a8" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+      <table class="tinytable" id="tinytable_imcmqedrr2spul9t3367" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+        
         <thead>
 <tr>
-<th scope="col" align="center" colspan="1" data-row="-1" data-col="0"> </th>
-<th scope="col" align="center" colspan="2" data-row="-1" data-col="1">Responsibility</th>
-<th scope="col" align="center" colspan="2" data-row="-1" data-col="2">Violence</th>
-<th scope="col" align="center" colspan="2" data-row="-1" data-col="3">Political Violence</th>
+<th scope="col" align="center" colspan="1" data-row="-1" data-col="1"> </th>
+<th scope="col" align="center" colspan="2" data-row="-1" data-col="2">Responsibility</th>
+<th scope="col" align="center" colspan="2" data-row="-1" data-col="4">Violence</th>
+<th scope="col" align="center" colspan="2" data-row="-1" data-col="6">Political Violence</th>
 </tr>
-        
               <tr>
-                <th scope="col" data-row="0" data-col="0">Country</th>
-                <th scope="col" data-row="0" data-col="1">Average</th>
-                <th scope="col" data-row="0" data-col="2">SD</th>
-                <th scope="col" data-row="0" data-col="3">Average</th>
-                <th scope="col" data-row="0" data-col="4">SD</th>
-                <th scope="col" data-row="0" data-col="5">Average</th>
-                <th scope="col" data-row="0" data-col="6">SD</th>
+                <th scope="col" data-row="0" data-col="1">Country</th>
+                <th scope="col" data-row="0" data-col="2">Average</th>
+                <th scope="col" data-row="0" data-col="3">SD</th>
+                <th scope="col" data-row="0" data-col="4">Average</th>
+                <th scope="col" data-row="0" data-col="5">SD</th>
+                <th scope="col" data-row="0" data-col="6">Average</th>
+                <th scope="col" data-row="0" data-col="7">SD</th>
               </tr>
         </thead>
         
         <tbody>
                 <tr>
-                  <td data-row="1" data-col="0">ARM</td>
-                  <td data-row="1" data-col="1">4.2</td>
-                  <td data-row="1" data-col="2">3.4</td>
-                  <td data-row="1" data-col="3">1.3</td>
-                  <td data-row="1" data-col="4">1.1</td>
-                  <td data-row="1" data-col="5">1.2</td>
-                  <td data-row="1" data-col="6">0.98</td>
+                  <td data-row="1" data-col="1">ARM</td>
+                  <td data-row="1" data-col="2">4.2</td>
+                  <td data-row="1" data-col="3">3.4</td>
+                  <td data-row="1" data-col="4">1.3</td>
+                  <td data-row="1" data-col="5">1.1</td>
+                  <td data-row="1" data-col="6">1.2</td>
+                  <td data-row="1" data-col="7">0.98</td>
                 </tr>
                 <tr>
-                  <td data-row="2" data-col="0">KAZ</td>
-                  <td data-row="2" data-col="1">4.9</td>
-                  <td data-row="2" data-col="2">2.8</td>
-                  <td data-row="2" data-col="3">1.9</td>
-                  <td data-row="2" data-col="4">2.1</td>
-                  <td data-row="2" data-col="5">1.8</td>
-                  <td data-row="2" data-col="6">2.04</td>
+                  <td data-row="2" data-col="1">KAZ</td>
+                  <td data-row="2" data-col="2">4.9</td>
+                  <td data-row="2" data-col="3">2.8</td>
+                  <td data-row="2" data-col="4">1.9</td>
+                  <td data-row="2" data-col="5">2.1</td>
+                  <td data-row="2" data-col="6">1.8</td>
+                  <td data-row="2" data-col="7">2.04</td>
                 </tr>
                 <tr>
-                  <td data-row="3" data-col="0">KGZ</td>
-                  <td data-row="3" data-col="1">5.1</td>
-                  <td data-row="3" data-col="2">3.9</td>
-                  <td data-row="3" data-col="3">1.5</td>
-                  <td data-row="3" data-col="4">1.8</td>
-                  <td data-row="3" data-col="5">1.4</td>
-                  <td data-row="3" data-col="6">1.69</td>
+                  <td data-row="3" data-col="1">KGZ</td>
+                  <td data-row="3" data-col="2">5.1</td>
+                  <td data-row="3" data-col="3">3.9</td>
+                  <td data-row="3" data-col="4">1.5</td>
+                  <td data-row="3" data-col="5">1.8</td>
+                  <td data-row="3" data-col="6">1.4</td>
+                  <td data-row="3" data-col="7">1.69</td>
                 </tr>
                 <tr>
-                  <td data-row="4" data-col="0">RUS</td>
-                  <td data-row="4" data-col="1">4.4</td>
-                  <td data-row="4" data-col="2">2.7</td>
-                  <td data-row="4" data-col="3">2</td>
+                  <td data-row="4" data-col="1">RUS</td>
+                  <td data-row="4" data-col="2">4.4</td>
+                  <td data-row="4" data-col="3">2.7</td>
                   <td data-row="4" data-col="4">2</td>
-                  <td data-row="4" data-col="5">2.2</td>
-                  <td data-row="4" data-col="6">2.28</td>
+                  <td data-row="4" data-col="5">2</td>
+                  <td data-row="4" data-col="6">2.2</td>
+                  <td data-row="4" data-col="7">2.28</td>
                 </tr>
                 <tr>
-                  <td data-row="5" data-col="0">TJK</td>
-                  <td data-row="5" data-col="1">5.4</td>
-                  <td data-row="5" data-col="2">2.8</td>
-                  <td data-row="5" data-col="3">2.2</td>
-                  <td data-row="5" data-col="4">1.2</td>
-                  <td data-row="5" data-col="5">2.2</td>
-                  <td data-row="5" data-col="6">1.24</td>
+                  <td data-row="5" data-col="1">TJK</td>
+                  <td data-row="5" data-col="2">5.4</td>
+                  <td data-row="5" data-col="3">2.8</td>
+                  <td data-row="5" data-col="4">2.2</td>
+                  <td data-row="5" data-col="5">1.2</td>
+                  <td data-row="5" data-col="6">2.2</td>
+                  <td data-row="5" data-col="7">1.24</td>
                 </tr>
                 <tr>
-                  <td data-row="6" data-col="0">UKR</td>
-                  <td data-row="6" data-col="1">4.4</td>
-                  <td data-row="6" data-col="2">2.7</td>
-                  <td data-row="6" data-col="3">2</td>
-                  <td data-row="6" data-col="4">1.8</td>
-                  <td data-row="6" data-col="5">1.9</td>
-                  <td data-row="6" data-col="6">2.01</td>
+                  <td data-row="6" data-col="1">UKR</td>
+                  <td data-row="6" data-col="2">4.4</td>
+                  <td data-row="6" data-col="3">2.7</td>
+                  <td data-row="6" data-col="4">2</td>
+                  <td data-row="6" data-col="5">1.8</td>
+                  <td data-row="6" data-col="6">1.9</td>
+                  <td data-row="6" data-col="7">2.01</td>
                 </tr>
                 <tr>
-                  <td data-row="7" data-col="0">UZB</td>
-                  <td data-row="7" data-col="1">6</td>
-                  <td data-row="7" data-col="2">3.2</td>
-                  <td data-row="7" data-col="3">1.9</td>
-                  <td data-row="7" data-col="4">2.3</td>
-                  <td data-row="7" data-col="5">1.7</td>
-                  <td data-row="7" data-col="6">2.11</td>
+                  <td data-row="7" data-col="1">UZB</td>
+                  <td data-row="7" data-col="2">6</td>
+                  <td data-row="7" data-col="3">3.2</td>
+                  <td data-row="7" data-col="4">1.9</td>
+                  <td data-row="7" data-col="5">2.3</td>
+                  <td data-row="7" data-col="6">1.7</td>
+                  <td data-row="7" data-col="7">2.11</td>
                 </tr>
         </tbody>
       </table>
@@ -5507,104 +6658,487 @@ Review
 <div class="cell-output-display">
 <!-- preamble start -->
 
-    <script>
+    <script>// TinyTable JavaScript Framework
+// Function factory for creating table-specific operations
+window.TinyTable = {
+  // Helper to create Tabulator instance with Luxon dependency
+  createTabulator: function(elementId, config) {
+    const { DateTime } = window.luxon || {};
+    return new Tabulator(elementId, {
+      dependencies: { DateTime },
+      ...config
+    });
+  },
 
-      function styleCell_ngvqq6ba7nma8r59jeam(i, j, css_id) {
-          var table = document.getElementById("tinytable_ngvqq6ba7nma8r59jeam");
-          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
-          if (cell) {
-              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
-              cell.classList.add(css_id);
-          } else {
-              console.warn(`Cell at (${i}, ${j}) not found.`);
-          }
+  createTableFunctions: function (tableId) {
+    const spans = []; // {top, left, rowspan, colspan}
+
+    function resolveToAnchor(i, j) {
+      // find if (i,j) is inside any span; return that span's anchor if so
+      for (const s of spans) {
+        if (
+          i >= s.top && i < s.top + s.rowspan &&
+          j >= s.left && j < s.left + s.colspan
+        ) {
+          return { i: s.top, j: s.left };
+        }
       }
-      function spanCell_ngvqq6ba7nma8r59jeam(i, j, rowspan, colspan) {
-        var table = document.getElementById("tinytable_ngvqq6ba7nma8r59jeam");
+      return { i, j };
+    }
+
+    return {
+      styleCell: function (i, j, css_id) {
+        // normalize possible string indices
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
+        const { i: ai, j: aj } = resolveToAnchor(i, j);
+        const cell = table.querySelector(`[data-row="${ai}"][data-col="${aj}"]`);
+        if (!cell) return; // silently skip if not found (e.g., removed)
+        cell.classList.add(css_id);
+      },
+
+      spanCell: function (i, j, rowspan, colspan) {
+        i = +i; j = +j;
+
+        const table = document.getElementById(tableId);
         const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
         if (!targetCell) {
           console.warn(`Cell at (${i}, ${j}) not found.`);
+          return;
         }
 
-        // Get all cells that need to be removed
+        // record span so future styleCell calls map to the anchor
+        spans.push({ top: i, left: j, rowspan, colspan });
+
+        // remove covered cells (except anchor)
         const cellsToRemove = [];
         for (let r = 0; r < rowspan; r++) {
           for (let c = 0; c < colspan; c++) {
-            if (r === 0 && c === 0) continue; // Skip the target cell
+            if (r === 0 && c === 0) continue;
             const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
-            if (cell) {
-              cellsToRemove.push(cell);
-            }
+            if (cell) cellsToRemove.push(cell);
           }
         }
-
-        // Remove all cells
         cellsToRemove.forEach(cell => cell.remove());
 
-        // Set rowspan and colspan of the target cell if it exists
-        if (targetCell) {
-          targetCell.rowSpan = rowspan;
-          targetCell.colSpan = colspan;
-        }
+        // set HTML attributes for clarity/serialization
+        targetCell.setAttribute('rowspan', rowspan);
+        targetCell.setAttribute('colspan', colspan);
       }
+    };
+  }
+};
+
+// =============================================================================
+// TABULATOR CUSTOM FORMATTERS (revised)
+// =============================================================================
+
+// SVG sparkline
+function tinytable_sparkline(cell, p = {}) {
+  let values = cell.getValue() ?? [];
+  if (!Array.isArray(values)) values = [values];
+  // coerce to finite numbers & strip NaNs
+  values = values.map(Number).filter(Number.isFinite);
+  const n = values.length;
+  if (n === 0) return "";
+
+  const w = p.width ?? 120, h = p.height ?? 30, pad = p.pad ?? 2;
+  const color = p.color ?? "currentColor", sw = p.strokeWidth ?? 1.5;
+  const fill = p.fillArea ?? false;
+  const showDots = p.showDots ?? false;
+  const dotR = p.dotRadius ?? 1.75;
+  const ariaLabel = p.ariaLabel ?? `sparkline with ${n} points`;
+
+  // single pass for min/max
+  let min = Infinity, max = -Infinity;
+  for (let v of values) { if (v < min) min = v; if (v > max) max = v; }
+  const span = (max - min) || 1;
+
+  const x = i => pad + (i * (w - 2 * pad)) / Math.max(n - 1, 1);
+  const y = v => h - pad - ((v - min) * (h - 2 * pad)) / span;
+
+  let d = `M ${x(0)},${y(values[0])}`;
+  for (let i = 1; i < n; i++) d += ` L ${x(i)},${y(values[i])}`;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", ariaLabel);
+
+  const path = document.createElementNS(NS, "path");
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", sw);
+  path.setAttribute("vector-effect", "non-scaling-stroke");
+
+  if (fill) {
+    const area = document.createElementNS(NS, "path");
+    area.setAttribute("d", d + ` L ${x(n - 1)},${h - pad} L ${x(0)},${h - pad} Z`);
+    area.setAttribute("fill", color);
+    area.setAttribute("fill-opacity", p.fillOpacity ?? 0.25);
+    svg.appendChild(area);
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  } else {
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+  }
+  svg.appendChild(path);
+
+  if (showDots) {
+    const dot = (i) => {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", x(i));
+      c.setAttribute("cy", y(values[i]));
+      c.setAttribute("r", dotR);
+      c.setAttribute("fill", color);
+      return c;
+    };
+    if (p.dots === "end") svg.appendChild(dot(n - 1));
+    else if (p.dots === "minmax") {
+      const iMin = values.indexOf(min), iMax = values.indexOf(max);
+      svg.appendChild(dot(iMin)); svg.appendChild(dot(iMax));
+    } else if (p.dots === true) {
+      for (let i = 0; i < n; i++) svg.appendChild(dot(i));
+    }
+  }
+
+  if (p.title) {
+    const title = document.createElementNS(NS, "title");
+    title.textContent = p.title;
+    svg.appendChild(title);
+  }
+
+  return svg;
+}
+
+// Canvas histogram
+function tinytable_histogram(cell, p = {}) {
+  let data = cell.getValue() ?? [];
+  if (!Array.isArray(data)) data = [data];
+  data = data.map(Number).filter(Number.isFinite);
+  const n = data.length;
+  if (n === 0) return "";
+
+  const cssWidth = p.width ?? 120;
+  const cssHeight = p.height ?? 30;
+  const color = p.color ?? "currentColor";
+  const gap = p.gap ?? 1;         // px gap between bars
+  const pad = p.pad ?? 0;         // inner padding
+  const ariaLabel = p.ariaLabel ?? `histogram with ${n} observations`;
+
+  // robust bins: Sturges as default; allow override
+  const k = Math.max(1, Math.min(64, p.bins ?? Math.ceil(Math.log2(n) + 1)));
+
+  // stats
+  let min = Infinity, max = -Infinity;
+  for (let v of data) { if (v < min) min = v; if (v > max) max = v; }
+
+  // zero-range safeguard -> single centered bar
+  const range = max - min;
+  const binWidth = range > 0 ? range / k : 1;
+
+  const bins = new Array(k).fill(0);
+  if (range === 0) {
+    // put all mass in the middle bin
+    bins[Math.floor(k / 2)] = n;
+  } else {
+    for (let v of data) {
+      let idx = Math.floor((v - min) / binWidth);
+      if (idx >= k) idx = k - 1; // clamp max edge
+      bins[idx]++;
+    }
+  }
+  const maxCount = Math.max(...bins, 1);
+
+  // HiDPI / Retina crispness
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", ariaLabel);
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  ctx.fillStyle = color;
+
+  const innerW = cssWidth - pad * 2;
+  const innerH = cssHeight - pad * 2;
+  const barW = innerW / k;
+
+  for (let i = 0; i < k; i++) {
+    const h = (bins[i] / maxCount) * innerH;
+    const x = pad + i * barW;
+    const y = cssHeight - pad - h;
+    // 0.5 translate helps crisp vertical edges on some displays
+    ctx.fillRect(Math.round(x) + 0.5, Math.floor(y), Math.max(0, barW - gap), Math.ceil(h));
+  }
+
+  if (p.title) canvas.title = p.title;
+  return canvas;
+}
+
+// Unified sorter that uses hidden rank field
+function tinytable_rank_sorter(a, b, aRow, bRow, column, dir, sorterParams) {
+  const rankField = sorterParams.rankField;
+  const aVal = aRow.getData()[rankField] || 0;
+  const bVal = bRow.getData()[rankField] || 0;
+  return aVal - bVal;
+}
+</script>
+
+    <script>
+      // Create table-specific functions using external factory
+      const tableFns_xdh1aiev4cpnnezcson2 = TinyTable.createTableFunctions("tinytable_xdh1aiev4cpnnezcson2");
       // tinytable span after
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '3', j: 1 }, { i: '3', j: 2 },  ], css_id: 'tinytable_css_550hbmct8z91mtdsvxwz',}, 
-          { positions: [ { i: '2', j: 1 }, { i: '1', j: 1 }, { i: '2', j: 2 }, { i: '1', j: 2 },  ], css_id: 'tinytable_css_9o93ylnn8mkg762daxay',}, 
-          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 },  ], css_id: 'tinytable_css_4e2vrkyj67y8go3up6jp',}, 
-          { positions: [ { i: '3', j: 0 }, { i: '3', j: 3 },  ], css_id: 'tinytable_css_z9qohb9funyhpt9swbyb',}, 
-          { positions: [ { i: '0', j: 0 }, { i: '0', j: 3 },  ], css_id: 'tinytable_css_44j6lf1vj0bdl3o13rss',}, 
+          { positions: [ { i: '1', j: 2 }, { i: '2', j: 2 }, { i: '1', j: 3 }, { i: '2', j: 3 } ], css_id: 'tinytable_css_gnf1emvvbaqpacgga4zu',}, 
+          { positions: [ { i: '3', j: 2 }, { i: '3', j: 3 } ], css_id: 'tinytable_css_brl77h9bule7rpcscqzk',}, 
+          { positions: [ { i: '3', j: 1 }, { i: '3', j: 4 } ], css_id: 'tinytable_css_8itenl0wdr1ivwnq597t',}, 
+          { positions: [ { i: '0', j: 2 }, { i: '0', j: 3 } ], css_id: 'tinytable_css_hogrcdms8cr6kbe90hgy',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 4 } ], css_id: 'tinytable_css_1ox9oxoxlhp8t6ps4v18',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  styleCell_ngvqq6ba7nma8r59jeam(cell.i, cell.j, group.css_id);
+                  tableFns_xdh1aiev4cpnnezcson2.styleCell(cell.i, cell.j, group.css_id);
               });
           });
       });
     </script>
 
+    <style type="text/css">
+
+
+.tinytable {
+
+--tt-border-color: black;
+--tt-header-border-color: black;
+--tt-striped-bg: rgba(0, 0, 0, .05);
+--tt-hover-bg: rgba(0, 0, 0, .075);
+--tt-caption-color: #6c757d;
+--tt-footnote-color: #6c757d;
+
+--tt-cell-padding: .5rem;
+--tt-cell-padding-sm: .25rem;
+--tt-table-margin: .5rem 0;
+--tt-caption-padding: .5rem 0;
+--tt-footnote-padding: .2rem .5rem;
+--tt-footnote-first-padding-top: .5rem;
+--tt-footnote-gap: .1rem;
+
+--tt-font-size-footnote: 0.875rem;
+--tt-font-size-sup: 0.75em;
+--tt-line-height-footnote: 1.25;
+--tt-line-height-footnote-tight: 1.2;
+--tt-font-weight-header: normal;
+
+--tt-border-width: 1px;
+--tt-border-width-tbody: 2px;
+}
+
+.tinytable {
+width: 100%;
+margin: var(--tt-table-margin);
+border-collapse: collapse;
+background-color: transparent;
+font-family: inherit;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+.tinytable * {
+font-family: inherit;
+}
+
+.tinytable th,
+.tinytable td {
+position: relative;
+padding: var(--tt-cell-padding);
+vertical-align: top;
+}
+.tinytable thead th {
+text-align: left;
+vertical-align: bottom;
+font-weight: var(--tt-font-weight-header);
+border-bottom: none;
+}
+.tinytable thead th[align="center"] {
+text-align: center;
+}
+.tinytable tbody + tbody {
+border-top: var(--tt-border-width-tbody) solid var(--tt-border-color);
+}
+
+
+.tinytable-sm th,
+.tinytable-sm td {
+padding: var(--tt-cell-padding-sm);
+}
+
+.tinytable-bordered {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+.tinytable-bordered th,
+.tinytable-bordered td {
+border: var(--tt-border-width) solid var(--tt-border-color);
+}
+
+.tinytable-striped tbody tr:nth-of-type(odd) {
+background-color: var(--tt-striped-bg);
+}
+
+.tinytable-hover tbody tr:hover {
+background-color: var(--tt-hover-bg);
+}
+
+.tinytable-responsive {
+width: 100%;
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"] {
+position: relative;
+
+--border-top: 0;
+--border-right: 0;
+--border-bottom: 0;
+--border-left: 0;
+
+--line-color-top: currentColor;
+--line-color-right: currentColor;
+--line-color-bottom: currentColor;
+--line-color-left: currentColor;
+
+--line-width-top: 0.1em;
+--line-width-right: 0.1em;
+--line-width-bottom: 0.1em;
+--line-width-left: 0.1em;
+
+--trim-top-left: 0%;
+--trim-top-right: 0%;
+--trim-right-top: 0%;
+--trim-right-bottom: 0%;
+--trim-bottom-left: 0%;
+--trim-bottom-right: 0%;
+--trim-left-top: 0%;
+--trim-left-bottom: 0%;
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::before {
+content: "";
+position: absolute;
+top: var(--trim-top-left, var(--trim-top-right, 0));
+left: var(--trim-left-top, 0);
+right: var(--trim-right-top, 0);
+bottom: 0;
+pointer-events: none;
+z-index: 1;
+border-top: calc(var(--border-top) * var(--line-width-top)) solid var(--line-color-top);
+border-right: calc(var(--border-right) * var(--line-width-right)) solid var(--line-color-right);
+border-left: calc(var(--border-left) * var(--line-width-left)) solid var(--line-color-left);
+}
+
+.tinytable :is(td, th)[class*="tinytable_css_"]::after {
+content: "";
+position: absolute;
+left: var(--trim-bottom-left, 0);
+right: var(--trim-bottom-right, 0);
+bottom: var(--trim-left-bottom, var(--trim-right-bottom, 0));
+height: calc(var(--border-bottom) * var(--line-width-bottom));
+background: var(--line-color-bottom);
+pointer-events: none;
+z-index: 2;
+}
+
+.tinytable-container {
+padding: 10px;
+overflow-x: auto;
+overflow-y: auto;
+width: auto;
+height: auto;
+}
+
+.tinytable caption {
+padding: var(--tt-caption-padding);
+
+caption-side: top;
+font-size: 1rem;
+text-align: left;
+}
+
+.tinytable tfoot tr:first-child td {
+padding-top: var(--tt-footnote-first-padding-top);
+}
+.tinytable tfoot td {
+padding: var(--tt-footnote-padding);
+font-size: var(--tt-font-size-footnote);
+line-height: 1.25;
+background-color: transparent;
+}
+
+.tinytable tfoot tr + tr td {
+padding-top: var(--tt-footnote-gap);
+}
+
+.tinytable tfoot sup {
+font-size: var(--tt-font-size-sup);
+line-height: 0;
+vertical-align: text-top;
+}
+
+.tinytable tfoot tr:nth-child(n+2) td {
+line-height: 1.2;
+}
+</style>
     <style>
 
-.table td.tinytable_css_550hbmct8z91mtdsvxwz, .table th.tinytable_css_550hbmct8z91mtdsvxwz { text-align: center; border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_9o93ylnn8mkg762daxay, .table th.tinytable_css_9o93ylnn8mkg762daxay { text-align: center; }
-.table td.tinytable_css_4e2vrkyj67y8go3up6jp, .table th.tinytable_css_4e2vrkyj67y8go3up6jp { text-align: center; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
-.table td.tinytable_css_z9qohb9funyhpt9swbyb, .table th.tinytable_css_z9qohb9funyhpt9swbyb { border-bottom: solid #d3d8dc 0.1em; }
-.table td.tinytable_css_44j6lf1vj0bdl3o13rss, .table th.tinytable_css_44j6lf1vj0bdl3o13rss { border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+#tinytable_xdh1aiev4cpnnezcson2 td.tinytable_css_gnf1emvvbaqpacgga4zu, #tinytable_xdh1aiev4cpnnezcson2 th.tinytable_css_gnf1emvvbaqpacgga4zu { text-align: center }
+#tinytable_xdh1aiev4cpnnezcson2 td.tinytable_css_brl77h9bule7rpcscqzk, #tinytable_xdh1aiev4cpnnezcson2 th.tinytable_css_brl77h9bule7rpcscqzk { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_xdh1aiev4cpnnezcson2 td.tinytable_css_8itenl0wdr1ivwnq597t, #tinytable_xdh1aiev4cpnnezcson2 th.tinytable_css_8itenl0wdr1ivwnq597t { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
+#tinytable_xdh1aiev4cpnnezcson2 td.tinytable_css_hogrcdms8cr6kbe90hgy, #tinytable_xdh1aiev4cpnnezcson2 th.tinytable_css_hogrcdms8cr6kbe90hgy { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
+#tinytable_xdh1aiev4cpnnezcson2 td.tinytable_css_1ox9oxoxlhp8t6ps4v18, #tinytable_xdh1aiev4cpnnezcson2 th.tinytable_css_1ox9oxoxlhp8t6ps4v18 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; }
 </style>
     <div class="container">
-      <table class="table table-borderless" id="tinytable_ngvqq6ba7nma8r59jeam" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
-        <thead>
+      <table class="tinytable" id="tinytable_xdh1aiev4cpnnezcson2" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
         
+        <thead>
               <tr>
-                <th scope="col" data-row="0" data-col="0">Variables</th>
-                <th scope="col" data-row="0" data-col="1">Histogram</th>
-                <th scope="col" data-row="0" data-col="2">Density</th>
-                <th scope="col" data-row="0" data-col="3">Average</th>
+                <th scope="col" data-row="0" data-col="1">Variables</th>
+                <th scope="col" data-row="0" data-col="2">Histogram</th>
+                <th scope="col" data-row="0" data-col="3">Density</th>
+                <th scope="col" data-row="0" data-col="4">Average</th>
               </tr>
         </thead>
         
         <tbody>
                 <tr>
-                  <td data-row="1" data-col="0">Responsibility</td>
-                  <td data-row="1" data-col="1"><img role="img" src="data:image/png;base64,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" style="height: 1em;"></td>
-                  <td data-row="1" data-col="2"><img role="img" src="data:image/png;base64,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" style="height: 1em;"></td>
-                  <td data-row="1" data-col="3">5</td>
+                  <td data-row="1" data-col="1">Responsibility</td>
+                  <td data-row="1" data-col="2"><img role="img" src="data:image/png;base64, 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iEInTzWXLpA+G1Ho5Knm0gXSZyMKnTzVXLpA+mxEoZOnmksXSJ+NKHTyVHPpAumzEYVOnmouXSB9NqLQyVPNpQukz0YUOnmquXSB9NmIQidPNZcukD4bUejkqebSBdJno6PR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7YpbOlE62j0fE+2KWzpROto9HxPtils6UTraPR8T7Yq9mes+1vfqJLfRHhS1lYUrcvInwpC0vq9kWEL2VhSd2+iPClLCyp2xcRvpSFJXX7IsKXsrCkbl9E+FIWltTtiwhfysKSun0R4UtZWFK3LyJ8KQtL6vZFhC9lYUndvojwpSwsqdsXEb6UhSV1+yLCl7KwpG5fRPhSFpbU7YsIX8rCkrp9EeFLWVhSty8ifCkLS+r2RYQvZWFJ3b6I8KUsLKnbFxG+lIUldfsiwpfasLAkPZuqhO8v/tWL9nu+pGfvquc3+/3EwpIivaue3+z3EwtLivSuen6z308sLCnSu+r5zX4/sbCkSO+q5zf7/cTCkiK9q57f7PcTC0uK9K56frPfTywsKdK76vnNfj+xsKRI76rnN/v9xMKSIr2rnt/s9xMLS4r0rnp+s99PLCwp0rvq+c1+P7GwpEjvquc3+/3EwpIivaue3+z3EwtLivSuen6z308sLCnSu+r5zX4/sbCkSO+q5zf7/cTCkiK9q57f7PcTC0uK9K56frPfTywsKdK76vnNfj+xsKRI76rnN/v9xMKShBorLEkiWViSYlhYkmJYWJJiWFiSYlhYkmJYWJJiWFiSYlhYkmJYWJJiWFiSYlhYkmJYWJJiWFiSYvwHdjYVNelBup4AAAAASUVORK5CYII=" style="height: 1em;"></td>
+                  <td data-row="1" data-col="3"><img role="img" src="data:image/png;base64, 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" style="height: 1em;"></td>
+                  <td data-row="1" data-col="4">5</td>
                 </tr>
                 <tr>
-                  <td data-row="2" data-col="0">Violence</td>
-                  <td data-row="2" data-col="1"><img role="img" src="data:image/png;base64,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" style="height: 1em;"></td>
-                  <td data-row="2" data-col="2"><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAAFNCAMAAACkM7WiAAAADFBMVEUAAAAAZAC+vr7///8TbEIcAAAKv0lEQVR4nO3dC5YbxRJFUfGY/5zfwjbGbvenpIrMjM/eA6ClinuQGrzg8TfQ3uP0CwDWEzoMIHQYQOgwgNBhAKHDAEKHAYQOAwgdBhA6DCB0GEDoVz3eOP164An2+rXvYf/1htopxFS/8E7ib2o//Qrha2b6qU8rFztlmOgnrmT+I/bTLxU+ZaEfup65j3Wys873ff6r+Uexn37V8AHbfNfzlUudzCzzPS98nEudzOzyT69n/i310y8f/mSWb93L3Ic6KRnlG3czlzoZmeTvIjqXOukY5K9uf22XOjmZ4y/iMv+W+um3Az9Z439iO/ehTiK2+FPg9/afqZ9+T/CdKf4rPnOlk4Yl/rCkc1/fScIOv1vUudTJwQq/Wde5r+9kYIX/WNm50knACP9e3blv75xngus7/8uHOqdZ4I7Olc5hBrgndKVzlP3t6VzpHDV+frs694/kOGn6+PZ1/pcPdc4Zvr2tnSudY2ZPb3PnQueU2dPbHbrSOWT08rZ3rnQOmTy8A50rnTMG7+5I50rniLmzO9S50jlh7uqOha509hs7unOdK539xm7uZOhKZ7epkzvaudLZbejiDncudDYburjToSudvWYO7njnSmevkXtL0LnS2Wri3FJ0rnR2Gri2JJ0rnY0Gji1N6Epnm3lby9O50tlm3NQyda50dhm3NKEz0bSl5epc6WwybWhCZ6RhQ8vWudLZY9jO8oWudHaYNbOEnSudHWatLGXoSme9USPL2bnQWW/SyJJ2rnTWm7SxtKErndUGTSxv50pntTkLy9y50llszsByh650lhqzr+SdC52lpuwre+dKZ6kp8xI6ow2ZV/7Olc5KQ9ZVIXSls86McZXoXOmsM2NbQme4GdsqErrSWWXEtKp0rnRWGbGsOqErnTUmDKtQ50pnjQG7KtW50FliwK5qha50Vug/q2KdK50V+q+qXOhKJ177UdXrXOjEaz+qgqErnXDdN1Wxc6ETrvmmSnaudMI1n1TR0JVOsN6Lqtq50gnWe1BCh296D6pu6EonVOs9Fe5c6YRqPafSoSudQJ3XVLtzpROo85iEDj80HlP1zpVOnMZbEjr8q++W6neudML0nVKH0JVOkLZLatG50AnSdkk9Qlc6MboOqUnnSidG1x21CV3pRGg6oz6dK50IPVfUqXOhE6DnilqFrnTuazmiXp0rnftabqhb6Ernro4Tate50Lmr44T6ha50bmq4oIadC52bGi6oY+hK556GA2oZutK5pd9+enaudG7pNx+hwx/6zadr6Ernhnbradu50rmh3Xgah650XtZtO507Vzov6zad3qErnRc1W07zzpXOi5oNR+jwnl7Dad+50nlNr90IHd7VajcDOlc6L2k1mxGhK50XdFrNjM6Vzgs6jWZK6ErnaY02M6ZzofO0RpuZE7rSeVafyQzqXOk8q89iRoWudJ7TZzCzQlc6T2mzl2GdK52ntJmL0OFjbeYyLnSl84Qua5nXudB5Qpe1DAxd6VzXZCwTO1c61zXZyszQlc5VPaYytHOlc1WPpYwNXelc02IoczsXOte0GMrg0JXOJR12MrlzpXNJh5nMDl3pXNBgJcM7FzoXNFjJ9NCVztfqj2R850rna/U3InSh86XyG9H5X0rnS+UnIvR/lD8ji5VfiNC/KX9H1qo+EJ3/UP2QrFV9H0L/V/VLslT1eQj9p+qnZKXi69D5L4rfkpWKj0Povyp+TBaqvQ2d/6b2MVmp9jaE/rva12Sh2tMQ+u9qX5OFSk9D52+VPicLlV6G0P9Q+p6sU3kYOn9H5YOyTuVdCP09lS/KMoVnofN3Fb4o6xSehdDfV/ikLFN3FTr/SN2bskzdUQj9Q3WPyiplN6HzT5S9KquUnYTQP1P2rCxSdRE6/1TVs7JK1UUI/XNV78oiRQeh8y8UvSurFB2E0L9S9LAsUnMPOv9azcuySM05CP2CmqdljZprEPoFNU/LGiXXoPNLSt6WNUqOQejXlDwuS5TcgtAvKnldVqg4BZ1fVvG8rFBxCUK/ruJ9WaDgEHT+hIL3ZYWCQxD6MwoemAXq7UDnT6l3YFaotwOhP6fehVmg3Ax0/qxyJ2aBcisQ+tPK3Zh41Uag8+dVuzELVBuB0F9Q7cjEK7YBnb+k2JWJV2wCQn9NsTMTrtYCdP6qWncmXK0BCP1Vte5MuFID0PnrSh2acKXuL/QbSl2aaKXOL/Q7Sp2aYJWur/NbKp2aaJWuL/R7Kt2aYJWOL/R7Kt2aYIWOr/O7Ch2bYIVuL/TbCl2bWHVOr/MAdc5NrDqXF3qEOvcmVJnD6zxGmYMTqszdhR6jzMEJVeXuOo9S5eKEqnJ2oYepcnIiFbm6zgMVuTmRihxd6IGK3JxINY6u81A1jk6kGjcXeqgaRydSiZvrPFiJqxOpxMmFHq3E2QlU4eI6j1fh7gSqcHChL1Dh8MSpcG+hr1Dh8oQpcG6dL1Hg8sQpcG6hr1Hg9IQpcG2hL1Lg9kTJf2ydL5P/+ETJf2uhL5P/+ERJf2udL5T++kTJfmqdL5X9/ETJfmmhr5X9/gRJfmidr5Z8AARJfmehr5Z8AATJfWedr5d7AQTJfWahb5B7AsRIfWWdb5F6A8TIfGSdb5J5BMTIfGOh75J5BYRIfGKd75N4BoRIfGGhb5R4B0RIfGChb5R4B0TIe2Cdb5V3CETIe1+h75V3CQRIe16d75Z2CgRIe12hb/dIOwZuy3pbnZ+QdQ3clvW0Qj8i6xy4K+lldX5I0j1wV9LDCv2UpIPgppx31fkxOQfBXSnvqvODUi6Cu1KeVegn+bdsHWU8qs4PyzgK7kl4U50fl3AV3JPwpEI/z9f3bvIdVOcp5BsGd6S7p86TSLcM7kh3TqFnkW4a3JDtmjrPwy/qjWS7pdAzkXobyS6p82Sk3kSyOwo9Ham3kOuKOs9I6g3kuqHQc8q1El6Q6oQ6z8qHenWZDqjzxB4PsVeW6XhCT07rdSW6nM4L8MFeVJ6r6byKh9rryXMwoZfyuOb0qvghzSV03pL0k8jy3HU+heKPSPK4dT6P3ndK8pyFPpbet8jxgHU+ntzXyvFohc43al8lxVPVOb9Q+wIZHqjO+YOv8rESPEqd8xGxR0nwGIXOZ3y0Rzj/BHXO18R+0/Gnp3Mu0voNpx+dznmCD/ZXHX5sOudZWn/F2Wemc17hg/1pR5+XznmZ2J8idOqS+mUnn5TOucvH+kUHH5POieA7/BXnHpHOCSP1rxx7QDonko/1z516Ojonmu/wnzj0ZHTOElL/wJnnonNW8bH+riMPReesJPU/nXgkOmcxv66/deBx6JwdtP6r/c9C5+wi9Z+2Pwmds5Hv8D9sfgoPnbOb1v/eHLrMOcMH+863L3MOmh37xreuc06b+5+O3veudU4OI/8nMLver1/PyWVY7XveqsxJ6fGfLSGcs+P9yZz8Hs/Z0E2o9S9Y5jRUrfrlr1HmtFeg+MUvzcc5k+TtfeFr+ucdn37wcEDC3pe9GJEzXabcF70MmcN3OT7eV/x8X9nhrcO1R/9ov5jDh8790/nAH/kQOVyyv/eQn/XQODxv479/v/cjHhKH+9b/Kbun/7q//dG/088Huln0x+of/7vinT/UD6RwLeGQv10AqQkdBhA6DCB0GEDoMIDQYQChwwBChwGEDgMIHQYQOgwgdBjg/6Q9U6VqMKu4AAAAAElFTkSuQmCC" style="height: 1em;"></td>
-                  <td data-row="2" data-col="3">1.9</td>
+                  <td data-row="2" data-col="1">Violence</td>
+                  <td data-row="2" data-col="2"><img role="img" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAABLAAAAGQCAMAAACJa2lsAAAABlBMVEUAAAD///+l2Z/dAAAMXUlEQVR4nO3UgY3ERhADwXf+STsFewGCo2NVBMJo2X//AHzEX/sDAP4rwQI+Q7CAzxAs4DMEC/gMwQI+Q7CAzxAs4DMEC/gMwQI+Q7CAzxAs4DMEC/iMjWD9fVb7cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDKxiLa2XnXvhycsrGIdnbetS8Hp2wsop2dd+3LwSkbi2hn5137cnDK/1pEe72DUv8dPkmwbkv9d/gkwbot9d/hkwTrttR/h08SrNtS/x0+SbBuS/13+CTBui313+GTBOu21H+HTxKs21L/HT5JsG5L/Xf4JMG6LfXf4ZME67bUf4dPEqzbUv8dPkmwiEg9WLYJFhGpB8s2wSIi9WDZJlhEpB4s2wSLiNSDZZtgEZF6sGwTLCJSD5ZtgkVE6sGyTbCISD1YtgkWEakHyzbBIiL1YNkmWESkHizbBIuI1INlm2ARkXqwbBMsIlIPlm2CRUTqwbJNsIhIPVi2CRYRqQfLNsEiIvVg2SZYRKQeLNsEi4jUg2WbYBGRerBsEywiUg+WbYJFROrBsk2wiEg9WLYJFhGpB8s2wSIi9WDZJlhEpB4s2wSLiNSDZZtgEZF6sGwTLCJSD5ZtgkVE6sGyTbCISD1YtgkWEakHyzbBIiL1YNkmWESkHizbBIuI1INlm2ARkXqwbBMsIlIPlm2CRUTqwbJNsIhIPVi2CRYRqQfLNsEiIvVg2SZYRKQeLNsEi4jUg2WbYBGRerBsEywiUg+WbYJFROrBsk2wiEg9WLYJFhGpB8s2wSIi9WDZJlhEpB4s2wSLiNSDZZtgEZF6sGwTLCJSD5ZtgkVE6sGyTbCISD1YtgkWEakHyzbBIiL1YNkmWESkHizbBIuI1INlm2ARkXqwbBMsIlIPlm2CRUTqwbJNsIhIPVi2CRYRqQfLNsEiIvVg2SZYRKQeLNsEi4jUg2WbYBGRerBsEywiUg+WbYJFROrBsk2wiEg9WLYJFhGpB8s2wSIi9WDZJlhEpB4s2wSLiNSDZZtgEZF6sGwTLCJSD5ZtgkVE6sGyTbCISD1YtgkWEakHyzbBIiL1YNkmWESkHizbBIuI1INlm2ARkXqwbBMsIlIPlm2CRUTqwbJNsIhIPVi2CRYRqQfLNsEiIvVg2SZYRKQeLNsEi4jUg2WbYBGRerBsEywiUg+WbYJFROrBsk2wiEg9WLYJFhGpB8s2wSIi9WDZJlhEpB4s2wSLiNSDZZtgEZF6sGwTLCJSD5ZtgkVE6sGyTbCISD1YtgkWEakHyzbBIiL1YNkmWESkHizbBIuI1INlm2ARkXqwbBMsIlIPlm2CRUTqwbJNsIhIPVi2CRYRqQfLNsEiIvVg2SZYRKQeLNsEi4jUg2WbYBGRerBsEywiUg+WbYJFROrBsk2wiEg9WLYJFhGpB8s2wSIi9WDZJlhEpB4s2wSLiNSDZZtgEZF6sGwTLCJSD5ZtgkVE6sGyTbCISD1YtgkWEakHyzbBIiL1YNkmWESkHizbBIuI1INlm2ARkXqwbBMsIlIPlm2CRUTqwbJNsOA3pBpximDBb0g14hTBgt+QasQpggW/IdWIUwQLfkOqEacIFvyGVCNOESz4DalGnCJY8BtSjThFsOA3pBpximDBb0g14hTBgt+QasQpggW/IdWIUwQLfkOqEacIFvyGVCNOESz4DalGnCJY8BtSjThFsOA3pBpximDBb0g14hTBgt+QasQpggW/IdWIUwQLfkOqEacIFvyGVCNOESz4DalGnCJY8BtSjThFsIAqwQI+Q7CAzxAs4DMEC/gMwQI+Q7CAzxAs4DMEC/gMwQI+Q7CAzxAs4DMEC/gMwQI+IxYsgCbBAj5DsIDPECzgMwQL+AzBAj5DsIDPECzgMwQL+AzBAj5DsIDPECzgMwQL+AzBAj7jX2yW/uT7Ov4SAAAAAElFTkSuQmCC" style="height: 1em;"></td>
+                  <td data-row="2" data-col="3"><img role="img" src="data:image/png;base64, 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" style="height: 1em;"></td>
+                  <td data-row="2" data-col="4">1.9</td>
                 </tr>
                 <tr>
-                  <td data-row="3" data-col="0">Political violence</td>
-                  <td data-row="3" data-col="1"><img role="img" src="data:image/png;base64,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" style="height: 1em;"></td>
-                  <td data-row="3" data-col="2"><img role="img" src="data:image/png;base64,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" style="height: 1em;"></td>
-                  <td data-row="3" data-col="3">1.8</td>
+                  <td data-row="3" data-col="1">Political violence</td>
+                  <td data-row="3" data-col="2"><img role="img" src="data:image/png;base64, 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" style="height: 1em;"></td>
+                  <td data-row="3" data-col="3"><img role="img" src="data:image/png;base64, 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" style="height: 1em;"></td>
+                  <td data-row="3" data-col="4">1.8</td>
                 </tr>
         </tbody>
       </table>
