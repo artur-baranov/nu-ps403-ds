@@ -47,8 +47,8 @@ Create a variable for independent and partisan leaders using `case_when()`.
 #| eval: false
 
 whogov = whogov %>%
-  mutate(indep = ...(leader_party == ...,
-                     leader_party != ...))
+  mutate(indep = ...(leader_party ... "independent" ... "Independent",
+                     leader_party != ... "Partisan"))
 ```
 
 Check the distribution of the newly created variable using `table()`
@@ -59,18 +59,31 @@ Check the distribution of the newly created variable using `table()`
 ...
 ```
 
-Now, **visualizations**. 
+Now, **visualizations**. Draw a histogram of `average_total`. Add an average. Make sure to name X axis: "Average Tenure of People in cabinet".
 
 ```{r}
 #| eval: false
 
-ggplot(whogov) +
-  geom_boxplot(aes(x = indep,
-                   y = average_total)) +
-  facet_wrap(~ system_category) +
-  coord_flip()
+...
 ```
 
+Now, draw a boxplot. X axis is `indep`, and Y axis is `average_total`.
+
+```{r}
+#| eval: false
+
+whogov_boxplot = ...
+
+whogov_boxplot
+```
+
+Add a `facet_wrap(~ system_category)`. And add `coord_flip()`. How is it different from `facet_grid()` we used last time?
+
+```{r}
+#| eval: false
+
+whogov_boxplot ...
+```
 
 :::
 
@@ -80,8 +93,6 @@ ggplot(whogov) +
 -   Learning how to merge data
 
 -   Comparing distributions, *statistically*
-
--   Analyzing relationships, *statistically* (more next week!)
 
 # Data Exploration
 
@@ -152,6 +163,7 @@ This is what we did, feel free to explore the [tutorial](https://rpubs.com/willi
 
 ![](https://raw.githubusercontent.com/gadenbuie/tidyexplain/main/images/left-join-extra.gif)
 
+
 # Comparing Distributions
 
 Comparing two groups is a bit easier, as things quickly get messier when you have more. Let's start with that. Create a binary variable in the dataset that would indicate if a country is a Democracy or Autocracy. You know how to use this `case_when()` function already, right?
@@ -161,6 +173,28 @@ whr_vdem = whr_vdem %>%
   mutate(regime_categorical = case_when(regime != 1 ~ "Autocratic", 
                                         regime == 1 ~ "Democratic"))
 ```
+
+Let's start exploring patterns. What are the top 5 happiest countries? Are these democracies?
+
+```{r}
+whr_vdem %>%
+  slice_max(Ladder_score, n = 5)
+```
+
+What are the least happy countries?
+
+```{r}
+whr_vdem %>%
+  slice_min(Ladder_score, n = 5)
+```
+
+And what is in the middle of the distribution? 
+
+```{r}
+whr_vdem %>%
+  slice(50:55)
+```
+
 
 Remove `position = "identity"` to get the sense of what it stands for. Without this, it would simply draw a histogram, stacking observations on top of each other! Finally, a new argument is alpha. It stands for the transparency of the element (bar).
 
@@ -216,6 +250,21 @@ t.test(whr_vdem$Ladder_score ~ whr_vdem$regime_categorical)
 
 # Optional Exercises
 
+First of all, recreate `whr_vdem` dataframe to have `Continent` variable in it. Use `left_join()` to create a dataset. Select the following variables: `Country_name`, `Ladder_score`, `Continent`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+whr_vdem = ... %>% 
+  ...() %>%
+  select(Country_name, Ladder_score, Continent)
+```
+
+:::
+
 In `whr_vdem` dataframe create a variable `Continent_binary` using `mutate()` and `case_when()` on `Continent` to divide observation on `North America` and `Other`.
 
 ::: {.callout-tip icon="false"}
@@ -231,7 +280,7 @@ whr_vdem = whr_vdem ...
 
 :::
 
-Visualize the distributions. Is it helpful?
+Visualize the distributions of happiness score (`Ladder_score`). Is it helpful?
 
 ::: {.callout-tip icon="false"}
 ## Solution
@@ -270,7 +319,6 @@ ggplot() +
 
 
 Perform a `t.test()` to understand if the average Happiness between North America and Other continents are statistically different. Interpret the result
-
 
 
 ::: {.callout-tip icon="false"}

@@ -29,3 +29,11 @@
   Code: "[{{< fa file-code >}}](scripts/ps403-d_04.qmd){target='_blank'}"
   Data: "[{{< fa database >}}](data/whogov.csv){target='_blank'}"
   type: "schedule"
+
+- title: "Merging Data and Statistical Relationships"
+  Week: 5
+  date: 2025-10-17
+  Link: "[{{< fa link >}}](/ps403-d_05.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_05.qmd){target='_blank'}"
+  Data: "[{{< fa database >}}](data/WHR.csv){target='_blank'}"
+  type: "schedule"

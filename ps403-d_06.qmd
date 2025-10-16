@@ -8,4 +8,6 @@ format:
 toc: true
 ---
 
-github desktop 
+github desktop + find replication of a paper on github
+
+https://github.com/FabianHabersack/carrots-and-sticks
