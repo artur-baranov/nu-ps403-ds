@@ -1,0 +1,333 @@
+---
+title: "Merging Data and Statistical Relationships"
+subtitle: "Week 5"
+date: 2025-10-17
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+# Before we start
+
+-   Any questions?
+
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_05.qmd" class="btn btn-primary" role="button" download="ps403-d_05.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+<br>
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/WHR.csv" class="btn btn-primary" role="button" download="WHR.csv" style="width:200px" target="_blank">Download data</a>
+</center><br>
+
+
+::: callout-note
+## Review
+
+First, load the `tidyverse` library
+
+```{r}
+#| message: false
+
+library(tidyverse)
+```
+
+Load the WhoGov dataset.
+
+```{r}
+whogov = read.csv("data/WhoGov.csv")
+```
+
+First of all, **data wrangling** (*take a look on week 2 script*).
+
+Create a variable for independent and partisan leaders using `case_when()`.
+
+```{r}
+#| eval: false
+
+whogov = whogov %>%
+  mutate(indep = ...(leader_party ... "independent" ... "Independent",
+                     leader_party != ... "Partisan"))
+```
+
+Check the distribution of the newly created variable using `table()`
+
+```{r}
+#| eval: false
+
+...
+```
+
+Now, **visualizations**. Draw a histogram of `average_total`. Add an average. Make sure to name X axis: "Average Tenure of People in cabinet".
+
+```{r}
+#| eval: false
+
+...
+```
+
+Now, draw a boxplot. X axis is `indep`, and Y axis is `average_total`.
+
+```{r}
+#| eval: false
+
+whogov_boxplot = ...
+
+whogov_boxplot
+```
+
+Add a `facet_wrap(~ system_category)`. And add `coord_flip()`. How is it different from `facet_grid()` we used last time?
+
+```{r}
+#| eval: false
+
+whogov_boxplot ...
+```
+
+:::
+
+
+# Agenda
+
+-   Learning how to merge data
+
+-   Comparing distributions, *statistically*
+
+# Data Exploration
+
+Today we are working with World Happiness report and V-Dem. Here are respective codebooks: [WHR](https://web.archive.org/web/20241211202813/https://happiness-report.s3.amazonaws.com/2024/Ch2+Appendix.pdf) and [V-Dem](https://v-dem.net/documents/38/V-Dem_Codebook_v14.pdf).
+
+Let's start with WHS.
+
+-   `Country_name` is the name of the country
+
+-   `Ladder_score` is the happiness score
+
+Load the data.
+
+```{r}
+whr = read.csv("data/WHR.csv")
+```
+
+Now, load the V-Dem data. 
+
+-   `country_name` is the name of the country
+
+-   `year` is the year of observation
+
+-   `e_v2x_api_3C` is Additive polyarchy index ordinal (*what is polyarchy?*)
+
+I have filtered out only the variables we need to work with today.
+
+```{r}
+load(url("https://github.com/vdeminstitute/vdemdata/raw/6bee8e170578fe8ccdc1414ae239c5e870996bc0/data/vdem.RData")) 
+
+vdem = vdem %>%
+  select(country_name, 
+         year, 
+         regime = e_v2x_api_3C)
+```
+
+Imagine, we are asked: are democracies happier than non-democracies?
+
+# Joining Data
+
+We can start exploring this relationship with our skilleset! But we need to add one more: joining or merging the data.
+
+To merge the data, we need to choose a variable that is common to both datasets. In our case, it’s the **country names**. Often, you would also have a year variable—but since our WHR report data is for the year 2022, let’s subset the V-Dem data to include only observations from 2022. Once again, why are we using` ==`?
+
+```{r}
+vdem_2022 = vdem %>%
+  filter(year == 2022)
+```
+
+Now, let’s merge the data using `left_join()`. Pay attention to the syntax, especially the `by` part.
+
+```{r}
+whr_vdem = whr %>%
+  left_join(vdem_2022, by = c("Country_name" = "country_name")) 
+```
+
+Check the result.
+
+```{r}
+whr_vdem = whr_vdem %>%
+  select(Country_name, Ladder_score, regime)
+
+whr_vdem %>%
+  head()
+```
+
+This is what we did, feel free to explore the [tutorial](https://rpubs.com/williamsurles/293454).
+
+![](https://raw.githubusercontent.com/gadenbuie/tidyexplain/main/images/left-join-extra.gif)
+
+
+# Comparing Distributions
+
+Comparing two groups is a bit easier, as things quickly get messier when you have more. Let's start with that. Create a binary variable in the dataset that would indicate if a country is a Democracy or Autocracy. You know how to use this `case_when()` function already, right?
+
+```{r}
+whr_vdem = whr_vdem %>%
+  mutate(regime_categorical = case_when(regime != 1 ~ "Autocratic", 
+                                        regime == 1 ~ "Democratic"))
+```
+
+Let's start exploring patterns. What are the top 5 happiest countries? Are these democracies?
+
+```{r}
+whr_vdem %>%
+  slice_max(Ladder_score, n = 5)
+```
+
+What are the least happy countries?
+
+```{r}
+whr_vdem %>%
+  slice_min(Ladder_score, n = 5)
+```
+
+And what is in the middle of the distribution? 
+
+```{r}
+whr_vdem %>%
+  slice(50:55)
+```
+
+
+Remove `position = "identity"` to get the sense of what it stands for. Without this, it would simply draw a histogram, stacking observations on top of each other! Finally, a new argument is alpha. It stands for the transparency of the element (bar).
+
+```{r}
+ggplot(whr_vdem %>%
+         drop_na(regime_categorical)) +
+  geom_histogram(aes(x = Ladder_score, 
+                     fill = regime_categorical), 
+                 position = "identity",
+                 alpha = 0.6)
+```
+
+Now, let’s calculate averages for Democracies and Autocracies.
+
+```{r}
+dem_avg = whr_vdem %>% 
+  filter(regime_categorical == "Democratic") %>% # leave only Democratic regimes
+  summarize(mean = mean(Ladder_score))           # calculate the average 
+
+aut_avg = whr_vdem %>% 
+  filter(regime_categorical == "Autocratic") %>%
+  summarize(mean = mean(Ladder_score))
+```
+
+And add the averages to the plot. So, are these groups different?
+
+```{r}
+ggplot(whr_vdem %>%
+         drop_na(regime_categorical)) +
+  geom_histogram(aes(x = Ladder_score, fill = regime_categorical), 
+                 position = "identity",
+                 alpha = 0.6) +
+  geom_vline(xintercept = dem_avg$mean, color = "blue") +
+  geom_vline(xintercept = aut_avg$mean, color = "red")
+```
+
+Formally, we can compare it using statistical tests. What does p-value indicate?
+
+```{r}
+t.test(whr_vdem$Ladder_score ~ whr_vdem$regime_categorical)
+```
+
+
+# Check List
+
+- [ ] I know how to use `mutate()` and `case_when()` to recode my variables
+
+- [ ] I have the intuition behind merging the data, and `left_join()` helps me doing complex stuff
+
+- [ ] I know how to visualize multiple distributions
+
+- [ ] I can easily compare distributions using `t.test()` and interpret the result
+
+# Optional Exercises
+
+First of all, recreate `whr_vdem` dataframe to have `Continent` variable in it. Use `left_join()` to create a dataset. Select the following variables: `Country_name`, `Ladder_score`, `Continent`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+whr_vdem = ... %>% 
+  ...() %>%
+  select(Country_name, Ladder_score, Continent)
+```
+
+:::
+
+In `whr_vdem` dataframe create a variable `Continent_binary` using `mutate()` and `case_when()` on `Continent` to divide observation on `North America` and `Other`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+whr_vdem = whr_vdem ...
+  ...(Continent_binary = case_when(Continent == "North America" ... =  "...",
+                                      Continent != "..." ~ "Other"))
+```
+
+:::
+
+Visualize the distributions of happiness score (`Ladder_score`). Is it helpful?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+ggplot() +
+  geom_histogram(data = whr_vdem, aes(x = ... , ... = Continent_binary), 
+                 position = ...,
+                 alpha = 0.6)
+```
+
+:::
+
+Calculate and add a a median for "Other" continents to the plot. Customize the plot, add `theme_bw()` and a title!
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+other_avg = whr_vdem %>% 
+  filter(Continent == "...") ...
+  ...(median = median(Ladder_score))
+
+ggplot() +
+  ...(..., aes(x = Ladder_score, fill = Continent_binary), 
+                 position = "identity",
+                 alpha = ...) +
+  geom_vline(... = )
+```
+
+:::
+
+
+Perform a `t.test()` to understand if the average Happiness between North America and Other continents are statistically different. Interpret the result
+
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
