@@ -27,6 +27,7 @@ Let's quickly review joins in R. Exercises are adapted from [here](https://www.r
 Create a sample dataset with information on how far the students live from campus. Why are we using `set.seed()`? Do you remember what `runif()` function does?
 
 ```{webr-r}
+#| results: 'asis'
 set.seed(123)
 student_distance = data.frame(student = seq(1, 6),         
                               distance = runif(6, 3, 10))
@@ -37,17 +38,18 @@ head(student_distance)
 Create another data frame with information on how students get to school.
 
 ```{webr-r}
+#| results: 'asis'
 student_transport = data.frame(Student = seq(1, 7, by = 2),
                                Transport = c("Bus", "Carpool", "Walk", "Bus"))
 
 head(student_transport) %>%
-  kable()
+  kable("html")
 ```
 
 First, take `student_distance` dataset and using `left_join()` merge the `student_transport` dataframe.
 
 ```{webr-r}
-#| eval: false
+#| results: 'asis'
 
 student_distance %>%
   left_join(..., by = ...) 
@@ -56,7 +58,7 @@ student_distance %>%
 Now, use `full_join()`. What is the difference?
 
 ```{webr-r}
-#| eval: false
+#| results: 'asis'
 
 ...
 ```
@@ -64,7 +66,7 @@ Now, use `full_join()`. What is the difference?
 Take `student_transport` and use `left_join()` to merge the `student_distance`. What is the difference? How would you make a choice?
 
 ```{webr-r}
-#| eval: false
+#| results: 'asis'
 
 ...
 ```
