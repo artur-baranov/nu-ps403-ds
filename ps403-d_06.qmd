@@ -84,6 +84,8 @@ Take `student_transport` and use `left_join()` to merge the `student_distance`. 
 
 You already know what GitHub is! But GitHub desktop is a bit more intuitive than working with the Git within RStudio terminal. 
 
+Download GitHub Desktop. Then, clone the repository we are working with Today. Let's do it together, step-by-step.
+
 <center>
 <a href="https://desktop.github.com/download" class="btn btn-primary" style="width:200px" target="_blank">GitHub Desktop</a>
 </center>
