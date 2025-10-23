@@ -18,7 +18,7 @@
     "href": "index.html#schedule",
     "title": "PS403 Statistics and Probability",
     "section": "Schedule",
-    "text": "Schedule\n\n\n\n\n\nWeek\n\n\nTitle\n\n\nLink\n\n\nCode\n\n\nData\n\n\n\n\n\n\n1\n\n\nData Exploration\n\n\n\n\n\n\n\n\n\n\n\n\n\n2\n\n\nData Wrangling and Classes\n\n\n\n\n\n\n\n\n \n\n\n\n\n3\n\n\nData Presentation Using Tables\n\n\n\n\n\n\n\n\n\n\n\n\n\n4\n\n\nData Visualization\n\n\n\n\n\n\n\n\n\n\n\n\n\n5\n\n\nMerging Data and Statistical Relationships\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNo matching items"
+    "text": "Schedule\n\n\n\n\n\nWeek\n\n\nTitle\n\n\nLink\n\n\nCode\n\n\nData\n\n\n\n\n\n\n1\n\n\nData Exploration\n\n\n\n\n\n\n\n\n\n\n\n\n\n2\n\n\nData Wrangling and Classes\n\n\n\n\n\n\n\n\n \n\n\n\n\n3\n\n\nData Presentation Using Tables\n\n\n\n\n\n\n\n\n\n\n\n\n\n4\n\n\nData Visualization\n\n\n\n\n\n\n\n\n\n\n\n\n\n5\n\n\nMerging Data and Statistical Relationships\n\n\n\n\n\n\n\n\n\n\n\n\n\n6\n\n\nData Management with GitHub\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "index.html#additional-resources",
@@ -93,8 +93,8 @@
   {
     "objectID": "ps403-d_06.html",
     "href": "ps403-d_06.html",
-    "title": "Data Management",
+    "title": "Data Management with GitHub",
     "section": "",
-    "text": "github desktop + find replication of a paper on github\nhttps://github.com/FabianHabersack/carrots-and-sticks"
+    "text": "Before we start\n\nAny questions?\nToday the class is different: we will cover the review on the Website.\n\n\n\n\n\n\n\nReview\n\n\n\nLet’s quickly review joins in R. Exercises are adapted from here.\nCreate a sample dataset with information on how far the students live from campus. Why are we using set.seed()? Do you remember what runif() function does?\n\nPlease enable JavaScript to experience the dynamic code cell content on this page.\nCreate another data frame with information on how students get to school.\n\nPlease enable JavaScript to experience the dynamic code cell content on this page.\nFirst, take student_distance dataset and using left_join() merge the student_transport dataframe.\n\nPlease enable JavaScript to experience the dynamic code cell content on this page.\nNow, use full_join(). What is the difference?\n\nPlease enable JavaScript to experience the dynamic code cell content on this page.\nTake student_transport and use left_join() to merge the student_distance. What is the difference? How would you make a choice?\n\nPlease enable JavaScript to experience the dynamic code cell content on this page.\n\n\n\n\nAgenda\n\nWorking with GitHub\nCovering extra topics (if time allows!)\n\n\n\nGitHub\nYou already know what GitHub is! But GitHub desktop is a bit more intuitive than working with the Git within RStudio terminal.\n\nGitHub Desktop\n\n\n\nRepository\n\n\n\nCheck List\n\nI understand what repository is, what fork mean, and what the Git is\nI know how to use GitHub desktop to create and clone repositories\nI can use patchwork library to easily plot the graphs on top of each another\nInterpretation of boxplot does not scare me!\n\n\n\nOptional Exercises\nDownload this script.\n\nDownload script\n\n\nLoad the tidyverse and patchwork libraries.\n\n\n\n\n\n\nSolution\n\n\n\n\n...\n\n\n\nMove the CSES_MARPOR.rds that you downloaded from GitHub to your data folder. Load it into R.\n\n\n\n\n\n\nSolution\n\n\n\n\ncses = readRDS(\"data/CSES_MARPOR.rds\")\n\n\n\nDraw a histogram of opportunity variable. Save it to p1 object.\n\n\n\n\n\n\nSolution\n\n\n\n\np1 = ...\n\n\n\nDraw a histogram of loyalty variable. Save it to p2 object.\n\n\n\n\n\n\nSolution\n\n\n\n\np2 = ...\n\n\n\nDisplay both graphs (p1 and p2) side-by-side using + operator from patchwork library.\n\n\n\n\n\n\nSolution\n\n\n\n\n... + p2\n\n\n\nCustomize the graphs (add axes names and title, and change theme to theme_bw()), and display two graphs together again.\n\n\n\n\n\n\nSolution\n\n\n\n\n..."
   }
 ]

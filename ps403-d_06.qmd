@@ -1,13 +1,188 @@
 ---
-title: "Data Management"
+title: "Data Management with GitHub"
 subtitle: "Week 6"
 date: 2025-10-24
-format: 
-  html:
-    embed-resources: true
+format: html
+engine: knitr
+filters:
+  - webr
+webr:
+  packages:
+    - dplyr
+    - knitr
 toc: true
 ---
 
-github desktop + find replication of a paper on github
+# Before we start
 
-https://github.com/FabianHabersack/carrots-and-sticks
+-   Any questions?
+
+-   Today the class is different: we will cover the review on the Website.
+
+::: callout-note
+## Review
+
+Let's quickly review joins in R. Exercises are adapted from [here](https://www.r-bloggers.com/2022/01/how-to-join-tables-in-r).
+
+Create a sample dataset with information on how far the students live from campus. Why are we using `set.seed()`? Do you remember what `runif()` function does?
+
+```{webr-r}
+set.seed(123)
+student_distance = data.frame(student = seq(1, 6),         
+                              distance = runif(6, 3, 10))
+
+head(student_distance)
+```
+
+Create another data frame with information on how students get to school.
+
+```{webr-r}
+student_transport = data.frame(Student = seq(1, 7, by = 2),
+                               Transport = c("Bus", "Carpool", "Walk", "Bus"))
+
+head(student_transport) %>%
+  kable()
+```
+
+First, take `student_distance` dataset and using `left_join()` merge the `student_transport` dataframe.
+
+```{webr-r}
+#| eval: false
+
+student_distance %>%
+  left_join(..., by = ...) 
+```
+
+Now, use `full_join()`. What is the difference?
+
+```{webr-r}
+#| eval: false
+
+...
+```
+
+Take `student_transport` and use `left_join()` to merge the `student_distance`. What is the difference? How would you make a choice?
+
+```{webr-r}
+#| eval: false
+
+...
+```
+
+
+:::
+
+# Agenda
+
+-   Working with GitHub
+
+-   Covering extra topics (if time allows!)
+
+# GitHub
+
+You already know what GitHub is! But GitHub desktop is a bit more intuitive than working with the Git within RStudio terminal. 
+
+<center>
+<a href="https://desktop.github.com/download" class="btn btn-primary" style="width:200px" target="_blank">GitHub Desktop</a>
+</center>
+<br>
+<center>
+<a href="https://github.com/artur-baranov/github-desktop" class="btn btn-primary" style="width:200px" target="_blank">Repository</a>
+</center>
+
+
+# Check List
+
+- [ ] I understand what repository is, what fork mean, and what the Git is
+
+- [ ] I know how to use GitHub desktop to create and clone repositories
+
+- [ ] I can use `patchwork` library to easily plot the graphs on top of each another
+
+- [ ] Interpretation of boxplot does not scare me!
+
+# Optional Exercises
+
+Download this script.
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_06.qmd" class="btn btn-primary" role="button" download="ps403-d_06.qmd" style="width:200px" target="_blank">Download script</a>
+</center><br>
+
+Load the `tidyverse` and `patchwork` libraries.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
+
+Move the `CSES_MARPOR.rds` that you downloaded from GitHub to your data folder. Load it into R.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+cses = readRDS("data/CSES_MARPOR.rds")
+```
+
+:::
+
+Draw a histogram of `opportunity` variable. Save it to `p1` object.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+p1 = ...
+```
+
+:::
+
+Draw a histogram of `loyalty` variable. Save it to `p2` object.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+p2 = ...
+```
+
+:::
+
+Display both graphs (`p1` and `p2`) side-by-side using `+` operator from `patchwork` library.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+... + p2
+```
+
+:::
+
+Customize the graphs (add axes names and title, and change theme to `theme_bw()`), and display two graphs together again.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+...
+```
+
+:::
