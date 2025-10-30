@@ -42,6 +42,14 @@
   Week: 6
   date: 2025-10-24
   Link: "[{{< fa link >}}](/ps403-d_06.qmd)"
-  Code: "[{{< fa file-code >}}](scripts/ps403-d_06.qmd){target='_blank'}"
+  Code: ""
   Data: "[{{< fa database >}}](https://github.com/artur-baranov/github-desktop){target='_blank'}"
+  type: "schedule"
+  
+- title: "Regression"
+  Week: 7
+  date: 2025-10-31
+  Link: "[{{< fa link >}}](/ps403-d_07.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_07.qmd){target='_blank'}"
+  Data: "[{{< fa database >}}](data/sipri.csv){target='_blank'}"
   type: "schedule"

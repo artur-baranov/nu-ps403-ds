@@ -1,0 +1,392 @@
+---
+title: "Regression"
+subtitle: "Week 7"
+date: 2025-10-31
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+# Before we start
+
+-   Any questions?
+
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_07.qmd" class="btn btn-primary" role="button" download="ps403-d_07.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+<br>
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/data/sipri.csv" class="btn btn-primary" role="button" download="sipri.csv" style="width:200px" target="_blank">Download data</a>
+</center><br>
+
+::: callout-note
+## Review
+
+If you have checked out the GitHub practice .qmd, then this would be quite familiar. Though, with the generated data! Let's compare Histograms and Boxplots.
+
+First of all, load `tidyverse` and `patchwork` libraries (intall the latter, if haven't done so yet!).
+
+```{r}
+#| message: false
+
+library(tidyverse)
+library(patchwork)
+```
+
+Let's generate the data. Say, coming from normal distribution. What is `rnorm`? Generate 1000 observaitons with $\mu = 0.5$ and $\sigma = 0.15$. 
+
+```{r}
+#| eval: false
+
+set.seed(123)
+data = data.frame(loyalty = rnorm(...))
+```
+
+Plot histogram first, then add a `geom_density()` layer. Customize the plot. Add limits for X axis on the graph from 0 to 1 using `xlim()`, change theme to `theme_minimal()`. Make sure to indicate median.
+
+```{r}
+#| eval: false
+
+gr_histogram = data %>%
+  ggplot() +
+    ...(aes(x = loyalty, y = ..density..), fill = "lightgray", color = "gray") +
+    ...(aes(x = loyalty)) +
+    ...
+    ...
+    labs(x = "Loyalty",
+         y = "Density") +
+   geom_vline(xintercept = median(data$loyalty), size = 1)
+
+gr_histogram
+```
+
+Now, repeat the same process with boxplot. Make loyalty appear on the Y axis. Add `coord_flip()`.
+
+```{r}
+#| eval: false
+
+gr_boxplot = data %>%
+  ggplot(aes(x = "", y = loyalty)) +
+    geom_boxplot(fill = "lightgray") +
+    ...
+    theme_minimal() +
+    labs(x = "", y = "Loyalty") +
+    ylim(0,1)
+
+gr_boxplot
+```
+
+Finally, compare them together. We can use `patchwork` for this. Compare the graphs.
+
+```{r}
+#| eval: false
+
+gr_histogram / gr_boxplot
+```
+
+:::
+
+# Agenda
+
+-   Practice joins (again!)
+
+-   Build OLS Regression Models (with extensions!)
+
+-   Presenting Regression Results
+
+# Exploring the Data
+
+We are working with V-Dem and [SIPRI Arms Transfers Database](https://www.sipri.org/databases/armstransfers). It contains information on all transfers of major conventional arms. The variables are: 
+
+-   `Recipient` of arms
+
+-   `Year` of the transfer
+
+-   `Import` of arms
+
+-   `Regime` a V-Dem variable for political regime
+
+```{r}
+sipri = read.csv("data/sipri.csv")
+```
+
+Now, subset some variables from V-Dem. We are choosing the following variables:
+
+-   `country_name` 
+
+-   `year` of the coded data
+
+-   `e_gdp` GDP of a country
+
+-   `e_miinteco` Armed conflict, international
+
+-   `e_miinterc` Armed conflict, internal 
+
+```{r}
+load(url("https://github.com/vdeminstitute/vdemdata/raw/6bee8e170578fe8ccdc1414ae239c5e870996bc0/data/vdem.RData"))
+vdem_variables = vdem %>%
+  select(country_name, year, e_gdp, e_miinteco, e_miinterc)
+```
+
+Note the syntax below. We are joining two dataframes by two variables: `Recipient` and `Year`, but in the V-Dem data those have different name or spelling. 
+
+```{r}
+sipri_vdem = sipri %>%
+  left_join(vdem_variables, by = c("Recipient" = "country_name", 
+                                   "Year" = "year"))
+
+head(sipri_vdem)
+```
+
+For our convenience, rename the variables in the newly created dataframe.
+
+```{r}
+sipri_vdem = sipri_vdem %>%
+  rename(GDP = e_gdp,
+         International_conflict = e_miinteco,
+         Internal_conflict = e_miinterc)
+
+head(sipri_vdem)
+```
+
+Explore the `GDP` variable. What can you notice? Take the `log()` of GDP directly in the plot. Did it get better?
+
+```{r}
+ggplot(sipri_vdem) +
+  geom_boxplot(aes(y = GDP))
+```
+
+Therefore, let’s create a new variable `Log_GDP`. This is a very typical operation. We call it transformations. 
+
+```{r}
+sipri_vdem = sipri_vdem %>%
+  mutate(Log_GDP = log(GDP))
+```
+
+To explore multiple variables at once, it is useful to plot them in `pairs` plot. There's a library `GGally` which is based on `ggplot2`, and it's quite straightforward. Be careful with the wrong class identification! Can you notice anything?
+
+```{r}
+#| warning: false
+#| message: false
+
+library(GGally)
+
+sipri_vdem %>%
+  ggpairs(columns = c("Import", "Regime", "Log_GDP", "International_conflict", "Internal_conflict"))
+```
+Don't forget to fix the classes of the variables!
+
+```{r}
+sipri_vdem$International_conflict = as.factor(sipri_vdem$International_conflict)
+sipri_vdem$Regime = as.factor(sipri_vdem$Regime)
+```
+
+# Model Building
+
+Let's set up a basic model. We are interested in explaining the `Import` of arms. Is it related to the economic capacity of the state? We can use proxy `Log_GDP`. We can interpret and plot it quite easily, right? But does the intercept make sense?
+
+```{r}
+model_basic = lm(Import ~ Log_GDP, sipri_vdem)
+summary(model_basic)
+```
+
+However, simple models are rare to see in academic articles. Let's run a Multiple Linear Regression with fixed effects. Add `International_conflict` and `Regime` to the model. You can interpret these coefficients easily, too.
+
+```{r}
+model_fe = lm(Import ~ Log_GDP + International_conflict + Regime, sipri_vdem)
+summary(model_fe)
+```
+
+To convey a better idea what's going on, you can plot these three independent variables. We can use `marginaleffects` library for this. 
+
+```{r}
+#| warning: false
+library(marginaleffects)
+
+model_fe %>%
+  plot_predictions(condition  = c("Log_GDP", "International_conflict", "Regime"))
+```
+
+Finally, let’s set up another model. This time with an interaction effect. Again, to get a better idea what’s going on, you can plot the three independent variables against the dependent variable. But the limitation is it’s hard to include more variables into the graph.
+
+However, good news is that it is still a `ggplot` object! So you can customize it in a same manner.
+
+```{r}
+#| warning: false
+
+model_int = lm(Import ~ Log_GDP * International_conflict + Regime, sipri_vdem)
+
+model_int %>%
+    plot_predictions(condition  = c("Log_GDP", "International_conflict", "Regime")) +
+    labs(x = "Log GDP",
+         y = "Import",
+         title = "Interaction Model",
+         color = "International Conflict",
+         fill = "International Conflict")
+```
+
+# Presentation of Results with Tables
+
+The most common way to present the resutls of the regression is in tables. We have practiced it over the last two quarters. By now, the expectation is you know how to present models in a "publishable" way. For details and examples see [details](https://modelsummary.com/vignettes/modelsummary.html). 
+
+Don't forget to:
+
+-   Include p-values and $\alpha$ (critical values for stars display)!
+
+-   Or include confidence intervals for $\beta$ (`statisitc = "conf.int")`
+
+-   If you have a categorical variable, mention the reference category
+
+-   $R^2$ for simple linear regression and $R^2_a$ for multiple linear regression
+
+-   Include number of observations
+
+-   Be concise (unless it's made for appendix)! You can simply highlight you have fixed effects instead of including the coefficient.
+
+Add the following argument: `output = "table.html"` if you want to save the table.
+
+```{r}
+#| warning: false
+
+library(modelsummary)
+publishable_table = modelsummary(list("Base model" = model_basic,
+                    "Fixed Effects model" = model_fe,
+                    "Interaction model" = model_int),
+                   title = "Arms Import Models",  
+                   stars = c("*" = 0.05), # or TRUE for default settings
+                   gof_omit = "AIC|BIC|Log.Lik|F|RMSE",
+                   coef_rename = c("(Intercept)", 
+                             "Log GDP", 
+                             "International Conflict", 
+                             "Regime: Democratic",
+                             "Regime: Electoral Authoritarian",
+                             "Regime: Minimally Democratic",
+                             "Log GDP × International Conflict"),
+                   notes = "Regime reference category: Autocratic",
+                   statistic = c("p.value"))
+
+publishable_table
+```
+
+When you have fixed effects, it may be a good practice to eliminate fixed effects coefficients. For example,
+
+```{r}
+modelsummary(list("Base model" = model_basic,
+                    "Fixed Effects model" = model_fe,
+                    "Interaction model" = model_int),
+                   title = "Arms Import Models",  
+                   stars = c("*" = 0.05), 
+                   gof_omit = "AIC|BIC|Log.Lik|F|RMSE",
+                   coef_omit = "Regime", # remove the coefficient you do not need to show
+                   coef_rename = c("(Intercept)", 
+                             "Log GDP", 
+                             "International Conflict", 
+                             "Log GDP × International Conflict"),
+                  add_rows = data.frame(term = "Fixed effects",
+                                   base = "-",
+                                   fe = "+",
+                                   int = "+"))
+```
+
+
+# Check List
+
+- [ ] I am confident in my data merging skills
+
+- [ ] I know how to use `GGally` to analyze pairs of variables 
+
+- [ ] I can plot complex models with `marginaleffects` library
+
+- [ ] I know how to use `modelsummary()` to present publishable tables
+
+- [ ] I have an intuition about predicted values and marginal effects
+
+- [ ] I have an intuition about how to transform variables
+
+# Optional Exercises
+
+Let's start with extracting the variables for the analysis. Select `country_name`, `year`, and Life expectancy (`e_pelifeex`) from vdem data.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+vdem_extraction = vdem %>%
+  ...
+```
+
+:::
+
+Now, using `left_join()`, combine two dataframes: `sipri` and `vdem_extraction`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+sipri_expectancy = sipri %>%
+  ...(..., by = c("Recipient" = "country_name", 
+                                     "Year" = ...))
+```
+
+:::
+
+In the newly created `sipri_expectancy` dataframe, rename the `e_pelifeex` to `Life_expectancy`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+sipri_expectancy = ... %>%
+  ...(Life_expectancy = ...)
+```
+
+:::
+
+Draw a `ggpairs()` graph (library is `GGally`). Can you discern any patterns (e.g., intersection of regime vs life expectancy or import vs life expectancy)?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+YOUR SOLUTION HERE
+
+:::
+
+Set up a fixed effects model. Regress `Import` against `Life_expectancy` and `Regime`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| eval: false
+
+life_expectancy_model_fe = lm(...)
+```
+
+
+:::
+
+Present a summary table
+
+::: {.callout-tip icon="false"}
+## Solution
+
+YOUR SOLUTION HERE
+
+:::
+
+Present a `modelsummary()` table. Make it as publishable as possible. Don't forget to include the reference category for the `Regime` variable.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+YOUR SOLUTION HERE
+
+:::
