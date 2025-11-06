@@ -53,3 +53,11 @@
   Code: "[{{< fa file-code >}}](scripts/ps403-d_07.qmd){target='_blank'}"
   Data: "[{{< fa database >}}](data/sipri.csv){target='_blank'}"
   type: "schedule"
+  
+- title: "Logistic Regression"
+  Week: 8
+  date: 2025-11-07
+  Link: "[{{< fa link >}}](/ps403-d_08.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_08.qmd){target='_blank'}"
+  Data: "[{{< fa database >}}](data/tjet.csv){target='_blank'}"
+  type: "schedule"
