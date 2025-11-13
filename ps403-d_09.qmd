@@ -160,6 +160,8 @@ ggplot(ae_whr) +
   theme_light()
 ```
 
+# Formal Tests
+
 Finally, let's test it. Interpret the results.
 
 ```{r}
