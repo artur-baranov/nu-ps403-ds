@@ -1,0 +1,258 @@
+---
+title: "Publishing and Quarter Review"
+subtitle: "Week 9"
+date: 2025-11-14
+format: 
+  html:
+    embed-resources: true
+toc: true
+---
+
+# Before we start
+
+-   No Discussion Section and Office Hours Next Week (but available by demand)
+
+-   Any questions?
+
+<center>
+<a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_09.qmd" class="btn btn-primary" role="button" download="ps403-d_08.qmd" style="width:200px" target="_blank">Download script</a>
+</center>
+
+::: callout-note
+## Review
+
+First of all, load the usual libraries and the Transnational Justice dataset from the previous week.
+
+```{r}
+#| message: false
+library(tidyverse)
+library(marginaleffects)
+library(GGally)
+
+tjet = read.csv("data/tjet.csv")
+```
+
+Let's explain under what circumstances countries adopt reparations policies. Could the involvement of international organizations influence a state's decision to implement such policies?
+
+-   `rep_binary` presence of reparations policy
+
+-   `ICC_investigation` presence of ICC investigation
+
+-   `uninv` ongoing UN investigations, count
+
+-   `trials_domestic`	count of domestic trials
+
+First, let's see if the probability of reparations (`rep_binary`) is increasing when ICC intervenes (`ICC_investigation`). Set up a `glm()` logit model.
+
+```{r}
+#| eval: false
+
+model_icc = ...
+```
+
+Present summary of the model.
+
+```{r}
+#| eval: false
+
+summary(model_icc)
+```
+
+Now, let's draw the graph using `plot_predictions()` from `marginaleffects` library. What is worrisome? 
+
+```{r}
+#| eval: false
+
+...(model_icc, 
+                 ... = c("ICC_investigation"))
+```
+
+Now, let's add a couple of variables. Add `uninv` and `trials_domestic`.
+
+```{r}
+#| eval: false
+
+model_full = glm(rep_binary ~ ICC_investigation + ..., family = binomial, data = tjet) 
+```
+
+Present `plot_predictions()` for `ICC_investigation` only.
+
+```{r}
+#| eval: false
+
+...
+```
+
+Finally, present the `modelsummary()` table for both models. Compare.
+
+```{r}
+#| eval: false
+
+modelsummary(list("ICC Model" = model_icc,
+                  "Full Model" = model_full),
+                   stars = c("*" = 0.05),
+                   gof_omit = "AIC|BIC|Log.Lik|F|RMSE" ,
+                   statistic = "p.value")
+```
+
+Don't forget to clean the environment.
+
+:::
+
+# Agenda
+
+-   Quick Review
+
+-   Example of Quarto and Overleaf for Publishing
+
+# Exploring Data
+
+Today we are working with World Happiness Report data, the one we had on the [week 5](https://artur-baranov.github.io/nu-ps403-ds/ps403-d_05.html).
+
+-   `Country_name` is the name of the country
+
+-   `Ladder_score` is the happiness score
+
+-   `Continent` 
+
+Load the data.
+
+```{r}
+whr = read.csv("data/WHR.csv")
+```
+
+Explore the following variables with the `ggpairs()` function from `GGally`. What can you see on the graph?
+
+```{r}
+#| message: false
+
+library(GGally)
+ggpairs(whr,
+        columns = c("Ladder_score",
+                    "Logged_GDP_per_capita",
+                    "Continent"))
+```
+
+Let's zoom in the Happiness Score by Continent. Is Africa different from Europe in terms of the Happiness?
+
+```{r}
+ggplot(whr) +
+  geom_boxplot(aes(x = Ladder_score, y = Continent)) +
+  labs(x = "Happiness") +
+  theme_bw()
+```
+
+Zoom in even more. Use `filter()` to leave only the continents we are analyzing. And leave only the variables we want to work with: `Country_name`, `Ladder_score`, `Continent` and `Logged_GDP_per_capita`.
+
+```{r}
+ae_whr = whr %>%
+  filter(Continent %in% c("Africa", "Europe")) %>%
+  select(Country_name, Ladder_score, Continent, Logged_GDP_per_capita)
+```
+
+Plot again. Make color more transparent with `alpha = 0.5`.
+
+```{r}
+ggplot(ae_whr) +
+  geom_boxplot(aes(x = Ladder_score, y = Continent, fill = Continent), alpha = 0.5) +
+  labs(x = "Happiness",
+       y = NULL) +
+  theme_light()
+```
+
+Finally, let's test it. Interpret the results.
+
+```{r}
+t.test(ae_whr$Ladder_score ~ ae_whr$Continent)
+```
+
+We can confirm it with the simple model. Estimate the Happiness Score depending on the continent, and plot the confidence intervals for the estimate. Is it different from the boxplots?
+
+```{r}
+lm(Ladder_score ~ Continent, 
+   ae_whr) %>%
+  plot_predictions(by = "Continent") +
+  coord_flip()
+```
+
+Now, let's plug in the Wealth, measured as Log GDP per capita in the model. Explore difference.
+
+```{r}
+model = lm(Ladder_score ~ Logged_GDP_per_capita + Continent, ae_whr)
+plot_predictions(model,
+                 condition = c("Logged_GDP_per_capita", "Continent"))
+```
+
+Present summary. Do `Continent` variable matter?
+
+```{r}
+summary(model)
+```
+
+Let's add one more variable, and run the model on the whole dataset. What does it tell us?
+
+```{r}
+lm(Ladder_score ~ Social_support + Logged_GDP_per_capita+ Continent, whr) %>%
+  summary()
+```
+
+# Quarto for Publishing
+
+Quarto and Overleaf are both excellent tools for publishing. For this class, itэs better to stick with Quarto -- the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.
+
+-   [Paper Template for Quarto](https://github.com/gustavo-diaz/ps403/tree/main/paper_template)
+  
+-   [Overleaf](https://www.overleaf.com)
+
+Helpful tips:
+
+-   [GitHub Desktop Tutorial](https://joshuadull.github.io/GitHub-Desktop/02-getting-started/index.html)
+
+-   [Exporting .bib file from Zotero](https://libguides.usask.ca/c.php?g=218034&p=1446406)
+
+Explore sections below, and then turn to working with the paper template.
+
+# What's next?
+
+Congrats with finalizing the class! No optional exercises this time.
+
+-   [Helpful resource for R](https://rstudio.github.io/cheatsheets/)
+
+-   Check the [main page](https://artur-baranov.github.io/nu-ps403-ds/) for additional resources
+
+-   Learning to code is like learning a new language: if you're interested, keep practicing!
+
+-   Linear models next!
+
+# What we have covered in coding
+
+| Library         | Functions                          | Description                                    |
+|-----------------|------------------------------------|------------------------------------------------|
+| tidyverse       | `filter()`, `mutate()`, `ggplot()` | data wrangling and visualization               |
+| modelsummary    | `modelsummary()`                   | present good looking model summary tables      |
+| broom           | `tidy()`                           | extract additional information from the models |
+| marginaleffects | `plot_predictions()`               | calculate and visualize marginal effects       |
+| GGally          | `ggpairs()`                        | extension to ggplot                            |
+| tinytable       | `tt()`                             | present good looking tables                    |
+| patchwork       | `/`, `+`                           | plot several graphs together                   |
+
+# Datasets we have used
+
+| Dataset                                           | Description                               | Link                                                     |
+|---------------------------------------------------|-------------------------------------------|----------------------------------------------------------|
+| **V-Dem**                                         | Measures democracy worldwide              | [V-Dem](https://www.v-dem.net/)                          |
+| **World Happiness Report**                        | Annual happiness report                   | [World Happiness Report](https://worldhappiness.report/) |
+| **Who Governs**                                   | Dataset on political elites               | [Who Governs](https://doi.org/10.1017/S0003055420000490) |
+| **SIPRI**                                         | Data on military operations               | [SIPRI](https://www.sipri.org/databases)                 |
+| **Comparative Political Data Set**                | A dataset covering political institutions | [CPDS](https://www.cpds-data.org/)                       |
+| **World Values Survey**                           | Survey measuring values across the globe  | [WVS](https://www.worldvaluessurvey.org/wvs.jsp)         |
+| **Transitional Justice Evaluation Tools Dataset** | Dataset assessing transitional justice    | [TJET Dataset](https://transitionaljusticedata.org)      |
+
+
+# Check List
+
+- [ ] I know that every lab has check list below! And I will use it to navigate what we have learned
+
+- [ ] R doesn't scare me anymore
+
+- [ ] I have developed the intuition behind application of quantitative methods and happy to learn more!

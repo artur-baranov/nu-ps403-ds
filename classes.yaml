@@ -42,7 +42,6 @@
   Week: 6
   date: 2025-10-24
   Link: "[{{< fa link >}}](/ps403-d_06.qmd)"
-  Code: ""
   Data: "[{{< fa database >}}](https://github.com/artur-baranov/github-desktop){target='_blank'}"
   type: "schedule"
   
@@ -60,4 +59,11 @@
   Link: "[{{< fa link >}}](/ps403-d_08.qmd)"
   Code: "[{{< fa file-code >}}](scripts/ps403-d_08.qmd){target='_blank'}"
   Data: "[{{< fa database >}}](data/tjet.csv){target='_blank'}"
+  type: "schedule"
+  
+- title: "Publishing and Quarter Review"
+  Week: 9
+  date: 2025-11-14
+  Link: "[{{< fa link >}}](/ps403-d_09.qmd)"
+  Code: "[{{< fa file-code >}}](scripts/ps403-d_09.qmd){target='_blank'}"
   type: "schedule"
