@@ -192,7 +192,7 @@ summary(model)
 Let's add one more variable, and run the model on the whole dataset. What does it tell us?
 
 ```{r}
-lm(Ladder_score ~ Social_support + Logged_GDP_per_capita+ Continent, whr) %>%
+lm(Ladder_score ~ Social_support + Logged_GDP_per_capita + Continent, whr) %>%
   summary()
 ```
 
@@ -200,9 +200,11 @@ lm(Ladder_score ~ Social_support + Logged_GDP_per_capita+ Continent, whr) %>%
 
 Quarto and Overleaf are both excellent tools for publishing. For this class, itэs better to stick with Quarto -- the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.
 
--   [Paper Template for Quarto](https://github.com/gustavo-diaz/ps403/tree/main/paper_template)
+Here is how to get started.
+
+-   [Paper Template for Quarto](https://github.com/gustavo-diaz/ps403/tree/main/paper_template). 
   
--   [Overleaf](https://www.overleaf.com)
+-   [Overleaf](https://www.overleaf.com). Click `New project` -> `Example project` to get started.
 
 Helpful tips:
 

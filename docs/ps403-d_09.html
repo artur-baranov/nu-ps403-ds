@@ -5037,7 +5037,7 @@ F-statistic: 147.6 on 2 and 73 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 <p>Let’s add one more variable, and run the model on the whole dataset. What does it tell us?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(Ladder_score <span class="sc">~</span> Social_support <span class="sc">+</span> Logged_GDP_per_capita<span class="sc">+</span> Continent, whr) <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(Ladder_score <span class="sc">~</span> Social_support <span class="sc">+</span> Logged_GDP_per_capita <span class="sc">+</span> Continent, whr) <span class="sc">%&gt;%</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -5072,9 +5072,10 @@ F-statistic: 64.81 on 7 and 123 DF,  p-value: &lt; 2.2e-16</code></pre>
 <section id="quarto-for-publishing" class="level1">
 <h1>Quarto for Publishing</h1>
 <p>Quarto and Overleaf are both excellent tools for publishing. For this class, itэs better to stick with Quarto – the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.</p>
+<p>Here is how to get started.</p>
 <ul>
-<li><p><a href="https://github.com/gustavo-diaz/ps403/tree/main/paper_template">Paper Template for Quarto</a></p></li>
-<li><p><a href="https://www.overleaf.com">Overleaf</a></p></li>
+<li><p><a href="https://github.com/gustavo-diaz/ps403/tree/main/paper_template">Paper Template for Quarto</a>.</p></li>
+<li><p><a href="https://www.overleaf.com">Overleaf</a>. Click <code>New project</code> -&gt; <code>Example project</code> to get started.</p></li>
 </ul>
 <p>Helpful tips:</p>
 <ul>
