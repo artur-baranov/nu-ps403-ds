@@ -14,9 +14,35 @@ toc: true
 
 -   Any questions?
 
+# Agenda
+
+-   Quick Review
+
+-   Example of Quarto and Overleaf for Publishing
+
+# Quarto for Publishing
+
+Quarto and Overleaf are both excellent tools for publishing. For this class, itэs better to stick with Quarto -- the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.
+
+Here is how to get started.
+
+-   [Paper Template for Quarto](https://github.com/gustavo-diaz/ps403/tree/main/paper_template). 
+  
+-   [Overleaf](https://www.overleaf.com). Click `New project` -> `Example project` to get started.
+
+Helpful tips:
+
+-   [GitHub Desktop Tutorial](https://joshuadull.github.io/GitHub-Desktop/02-getting-started/index.html)
+
+-   [Exporting .bib file from Zotero](https://libguides.usask.ca/c.php?g=218034&p=1446406)
+
+-   Google Scholar has BibTeX citations!
+
+
 <center>
 <a href="https://artur-baranov.github.io/nu-ps403-ds/scripts/ps403-d_09.qmd" class="btn btn-primary" role="button" download="ps403-d_08.qmd" style="width:200px" target="_blank">Download script</a>
 </center>
+
 
 ::: callout-note
 ## Review
@@ -99,11 +125,6 @@ Don't forget to clean the environment.
 
 :::
 
-# Agenda
-
--   Quick Review
-
--   Example of Quarto and Overleaf for Publishing
 
 # Exploring Data
 
@@ -198,23 +219,6 @@ lm(Ladder_score ~ Social_support + Logged_GDP_per_capita + Continent, whr) %>%
   summary()
 ```
 
-# Quarto for Publishing
-
-Quarto and Overleaf are both excellent tools for publishing. For this class, itэs better to stick with Quarto -- the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.
-
-Here is how to get started.
-
--   [Paper Template for Quarto](https://github.com/gustavo-diaz/ps403/tree/main/paper_template). 
-  
--   [Overleaf](https://www.overleaf.com). Click `New project` -> `Example project` to get started.
-
-Helpful tips:
-
--   [GitHub Desktop Tutorial](https://joshuadull.github.io/GitHub-Desktop/02-getting-started/index.html)
-
--   [Exporting .bib file from Zotero](https://libguides.usask.ca/c.php?g=218034&p=1446406)
-
-Explore sections below, and then turn to working with the paper template.
 
 # What's next?
 
