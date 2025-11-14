@@ -22,7 +22,7 @@ toc: true
 
 # Quarto for Publishing
 
-Quarto and Overleaf are both excellent tools for publishing. For this class, itэs better to stick with Quarto -- the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.
+Quarto and Overleaf are both excellent tools for publishing. For this class, it's better to stick with Quarto -- the scope of your projects makes it a suitable choice. However, if your papers become longer or you plan to collaborate with others, Overleaf is the better option.
 
 Here is how to get started.
 
